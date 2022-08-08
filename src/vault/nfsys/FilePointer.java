@@ -48,25 +48,31 @@ public class FilePointer implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
         if (obj == null) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+        
+        if (obj == this) {
+            return true;
+        }
+        
+        if (obj instanceof FilePointer pointer) {
+            if (pointer.getID().equals(id) 
+                    && pointer.getSize() == size
+                    && pointer.getLocation().equals(location)) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
             return false;
         }
-        final FilePointer other = (FilePointer) obj;
-        if (this.size != other.size) {
-            return false;
-        }
-        if (!Objects.equals(this.location, other.location)) {
-            return false;
-        }
-        return Objects.equals(this.id, other.id);
     }
 
+    public UUID getID() {
+        return id;
+    }
+    
     public byte[] getBytes() {
         var file = load();
         return file == null ? null : file.getBytes();

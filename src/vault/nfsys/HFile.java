@@ -8,6 +8,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import vault.encrypt.Encryptor;
 
 public class HFile implements Serializable {
@@ -22,6 +24,13 @@ public class HFile implements Serializable {
     }
 
     private void update() {
+        if (!location.exists()) {
+            try {
+                location.createNewFile();
+            } catch (IOException ex) {
+                Logger.getLogger(HFile.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
         try ( var out = new ObjectOutputStream(new FileOutputStream(location))) {
             out.writeObject(Encryptor.encryptObject(this));
             out.close();
@@ -66,7 +75,7 @@ public class HFile implements Serializable {
     }
 
     public void removeReference(FilePointer pointer) {
-        references.remove(pointer);        
+        references.remove(pointer);
         if (references.size() == 0) {
             selfDestruct();
         } else {

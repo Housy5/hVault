@@ -30,7 +30,7 @@ public class Clipper {
                 folder.setName(NameUtilities.nextFolderName(folder.getName(), origin));
             }
             
-            origin.addFolder(origin);
+            origin.addFolder(folder);
             folder.remap(origin);
         }
         
@@ -79,21 +79,34 @@ public class Clipper {
             Main.frameInstance.loadFolder(fsys.getCurrentFolder());
         } else if (item instanceof Folder fol) {
             Folder current = fsys.getCurrentFolder();
+            String newName = null;
             if (current.containsFolderName(fol.getName())) {
-                String newName = NameUtilities.nextFolderName(fol.getName(), current);
+                newName = NameUtilities.nextFolderName(fol.getName(), current);
 
                 if (newName == null) {
                     JOptionPane.showMessageDialog(Main.frameInstance, "<html><h2>Couldn't paste the folder \"" + fol.getName() + "\" over here. :(");
                     return;
                 }
-
-                fol.setName(newName);
             }
 
-            current.addFolder(fol);
-            fol.setParent(current);
-            fol.remap(fsys.getCurrentFolder());
-            Main.frameInstance.loadFolder(fsys.getCurrentFolder());
+            if (type == Type.COPY) {
+                Folder copy = fol.copy(); 
+                if (newName != null){
+                    copy.setName(newName);
+                }
+                current.addFolder(copy);
+                copy.setParent(current);
+                copy.remap(current);
+            } else {
+                if (newName != null) {
+                    fol.setName(newName);
+                }
+                current.addFolder(fol);
+                fol.setParent(current);
+                fol.remap(current);                
+            }
+
+            Main.frameInstance.loadFolder(current);
         }
 
         Main.saveUsers();
@@ -112,7 +125,7 @@ public class Clipper {
         
         type = Type.COPY;
         if (obj instanceof Folder fol) {
-            item = fol.copy();
+            item = fol;
         } else if (obj instanceof FilePointer hFile) {
             item = hFile;
         }
@@ -129,7 +142,7 @@ public class Clipper {
             objOrigin.removeFilePointer(fp, false);
             Main.frameInstance.loadFolder(objOrigin);
         } else if (obj instanceof Folder fol) {
-            objOrigin.removeFolderReference(objOrigin);
+            objOrigin.removeFolderReference(fol);
             Main.frameInstance.loadFolder(objOrigin);
         }
         item = obj;

@@ -89,7 +89,6 @@ public class Tile extends JPanel {
                                 setCursor(Cursor.getDefaultCursor());
                             } else if (x == Util.PASSWORD_DENIED) {
                                 JOptionPane.showMessageDialog(frameInstance, Constants.ACCESS_DENIED_TEXT);
-                            } else if (x == Util.CANCEL) {
                             }
                         }
                     }
@@ -183,7 +182,21 @@ public class Tile extends JPanel {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        Clipper.cut(file, frameInstance.user.fsys.getCurrentFolder());
+                        if (type == FileType.FILE) {
+                            Clipper.cut(file, frameInstance.user.fsys.getCurrentFolder());
+                        } else if (type == FileType.FOLDER) {
+                            if (folder.isLocked()) {
+                                int x = Util.requestPassword();
+                                
+                                if (x == Util.PASSWORD_ACCEPTED) {
+                                    Clipper.cut(folder, frameInstance.user.fsys.getCurrentFolder());
+                                } else if (x == Util.PASSWORD_DENIED) {
+                                    JOptionPane.showMessageDialog(frameInstance, Constants.ACCESS_DENIED_TEXT);
+                                }
+                            } else {
+                                Clipper.cut(folder, frameInstance.user.fsys.getCurrentFolder());
+                            }
+                        }    
                     }
                 }
             });
@@ -196,7 +209,17 @@ public class Tile extends JPanel {
                         if (type == FileType.FILE) {
                             Clipper.copy(file);
                         } else {
-                            Clipper.copy(folder);
+                            if (folder.isLocked()) {
+                                int x = Util.requestPassword();
+                                
+                                if (x == Util.PASSWORD_ACCEPTED) {
+                                    Clipper.copy(folder);
+                                } else if (x == Util.PASSWORD_DENIED) {
+                                    JOptionPane.showMessageDialog(frameInstance, Constants.ACCESS_DENIED_TEXT);
+                                }
+                            } else {
+                                Clipper.copy(folder);
+                            }
                         }
                     }
                 }
@@ -207,7 +230,7 @@ public class Tile extends JPanel {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        int x = JOptionPane.showConfirmDialog(frameInstance, "<html><h3>re you sure you want to enable password protection on this folder?");
+                        int x = JOptionPane.showConfirmDialog(frameInstance, "<html><h3>Are you sure you want to enable password protection on this folder?");
                         if (x == JOptionPane.YES_OPTION) {
                             folder.setLocked(true);
                         }

@@ -104,9 +104,13 @@ public class Folder implements Serializable {
         sortFolders();
     }
 
-    private void removeContent() {
-        files.stream().forEach((FilePointer pointer) -> removeFile(pointer));
-        folders.stream().forEach((Folder folder) -> folder.removeContent());
+    protected void removeContent() {
+        for (FilePointer file : files) {
+            removeFile(file);
+        }
+        for (Folder fol : folders) {
+            fol.removeContent();
+        }
         files.clear();
         folders.clear();
     }
@@ -300,7 +304,9 @@ public class Folder implements Serializable {
 
         if (!this.files.isEmpty()) {
             for (FilePointer file : this.files) {
-                files.add(file.copy());
+                FilePointer copy = file.copy();
+                copy.setParent(folder);
+                files.add(copy);
             }
         }
 
