@@ -89,7 +89,7 @@
                 <Property name="editable" type="boolean" value="false"/>
                 <Property name="columns" type="int" value="20"/>
                 <Property name="rows" type="int" value="5"/>
-                <Property name="text" type="java.lang.String" value="Welcome to hVault!&#xa;------------------------------------------------------------------------------------&#xa;&#xa;Quick Tips: &#xa;&#xa;-Every operation is accessible through right-clicking.&#xa;-To add files you can drag them to the vault from your desktop.&#xa;-To organize your vault, you can create folders to keep everything sorted.&#xa;-You can open files by just left clicking on them. &#xa;&#xa;Have fun! :) &#xa;&#xa;Disclaimer:&#xa;&#xa;This program is intended as an extra layer of privacy, it is not intended for criminal use.&#xa;If however it is used as such, we&apos;ll not hesitate to provide the police with a copy that allows them to read said encrypted data.&#xa;&#xa;&#xa;&#xa;"/>
+                <Property name="text" type="java.lang.String" value="Welcome to hVault!&#xa;------------------------------------------------------------------------------------&#xa;&#xa;Quick Tips: &#xa;&#xa;-Every operation is accessible through right-clicking.&#xa;-To add files you can drag them to the vault from your desktop.&#xa;-To organize your vault, you can create folders to keep everything sorted.&#xa;-You can open files by just left clicking on them. &#xa;&#xa;Have fun! :) &#xa;&#xa;"/>
               </Properties>
             </Component>
           </SubComponents>

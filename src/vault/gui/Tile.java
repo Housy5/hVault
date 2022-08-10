@@ -171,7 +171,9 @@ public class Tile extends JPanel {
                 }
 
                 private void removeFolder(FileSystem fsys) {
+                    frameInstance.showState(Frame.DELETING_STATE);
                     fsys.removeFolder(folder);
+                    frameInstance.showState(Frame.IDLE_STATE);
                     frameInstance.loadFolder(fsys.getCurrentFolder());
                     Main.saveUsers();
                 }

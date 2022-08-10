@@ -31,11 +31,11 @@ public class ImportTicket {
             return;
         }
 
-        int count = fsys.addFiles(files, parent);
+        int count = fsys.addFilesV2(files, parent);
 
         if (count == 0) {
             return;
-        } else if (count == files.size()) {
+        } else if (count > 0) {
             String msg = files.size() > 1
                     ? "Do you want to delete all the original files from your hard drive?"
                     : "Do you want to delete the original file from your hard drive?";

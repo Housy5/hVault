@@ -14,6 +14,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -88,6 +89,14 @@ public final class Frame extends javax.swing.JFrame {
         return result;
     }
 
+    public final static String IDLE_STATE = "Idling...";
+    public final static String PROGRESS_STATE = "%d/%d Files.";
+    public final static String DELETING_STATE = "Deleting Stuff...";
+    
+    public void showState(String state) {
+        jLabel1.setText(state);
+    } 
+    
     /**
      * Loads the specified folder to the screen.
      *
@@ -151,6 +160,8 @@ public final class Frame extends javax.swing.JFrame {
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
+        jPanel2 = new javax.swing.JPanel();
+        jLabel1 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Vault");
@@ -173,6 +184,14 @@ public final class Frame extends javax.swing.JFrame {
         jPanel1.setLayout(flowLayout1);
         getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
+        jPanel2.setDoubleBuffered(false);
+        jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
+
+        jLabel1.setText("Idling...");
+        jPanel2.add(jLabel1);
+
+        getContentPane().add(jPanel2, java.awt.BorderLayout.SOUTH);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
@@ -194,11 +213,11 @@ public final class Frame extends javax.swing.JFrame {
         var chooser = new JFileChooser();
         chooser.showOpenDialog(jPanel1);
 
-        var files = chooser.getSelectedFile();
+        var file = chooser.getSelectedFile();
         var folder = user.fsys.getCurrentFolder();
 
-        if (files != null) {
-            addFile(List.of(files), folder);
+        if (file != null) {
+            addFile(List.of(file), folder);
         }
     }
 
@@ -430,6 +449,8 @@ public final class Frame extends javax.swing.JFrame {
     }//GEN-LAST:event_formWindowClosing
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     // End of variables declaration//GEN-END:variables
 }

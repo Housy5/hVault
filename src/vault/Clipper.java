@@ -57,7 +57,7 @@ public class Clipper {
                 newName = NameUtilities.nextFileName(filePointer.getName(), current);
                 
                 if (newName == null) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h2>Couldn't paste the file \"" + filePointer.getName() + "\" over here. :(");
+                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Couldn't paste the file \"" + filePointer.getName() + "\" over here. :(");
                     return;
                 }
             }
@@ -84,7 +84,7 @@ public class Clipper {
                 newName = NameUtilities.nextFolderName(fol.getName(), current);
 
                 if (newName == null) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h2>Couldn't paste the folder \"" + fol.getName() + "\" over here. :(");
+                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Couldn't paste the folder \"" + fol.getName() + "\" over here. :(");
                     return;
                 }
             }

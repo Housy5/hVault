@@ -14,6 +14,7 @@ import javax.swing.JOptionPane;
 import vault.Main;
 import vault.NameUtilities;
 import vault.encrypt.Encryptor;
+import vault.gui.Frame;
 
 public class FileSystem implements Serializable {
 
@@ -186,6 +187,48 @@ public class FileSystem implements Serializable {
         parent.removeFilePointer(file);
     }
 
+    public int addFilesV2(List<File> files, Folder parent) {
+        int count = 0;
+        
+        for (File file : files) {
+            Main.frameInstance.showState(String.format(Frame.PROGRESS_STATE, files.indexOf(file), files.size()));
+            if (file.isDirectory()) {
+                String newName = null;
+                if (parent.containsFolderName(file.getName())) {
+                    newName = NameUtilities.nextFolderName(file.getName(), parent);
+                    if (newName == null) {
+                        continue;
+                    }
+                }
+                Folder newFolder = FolderBuilder.createFolder(newName == null 
+                        ? file.getName() 
+                        : newName, parent);
+                count += addFilesV2(List.of(file.listFiles()), newFolder);
+                parent.addFolder(newFolder);
+            } else if (file.isFile()) {
+                String newName = null;
+                if (file.length() > Integer.MAX_VALUE) {
+                    continue;
+                }
+                if (parent.containsFileName(file.getName())) {
+                    newName = NameUtilities.nextFileName(file.getName(), parent);
+                    if (newName == null) {
+                        continue;
+                    }
+                }
+                if (newName == null ) {
+                     addFile(file, parent);
+                } else {
+                    addFile(file, parent, newName);
+                }
+                count++;
+            }
+        }
+        
+        Main.frameInstance.showState(Frame.IDLE_STATE);
+        return count;
+    }
+    
     /**
      * Attempts to add one or more files to the specified folder
      * When trying to add files with the same name as other files contained in the specified folder.The program automatically will attempt to add (n) to the back of the file name up to Integer.MAX_VALUE.
@@ -200,6 +243,9 @@ public class FileSystem implements Serializable {
         file_loop:
         for (File file : files) {
             try {
+                if (file.isDirectory()) {
+                    continue;
+                }
                 addFile(file, parent);
                 count++;
             } catch (FileAlreadyExistsException e) {
