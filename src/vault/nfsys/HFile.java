@@ -8,8 +8,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import vault.encrypt.Encryptor;
 
 public class HFile implements Serializable {
@@ -28,13 +27,15 @@ public class HFile implements Serializable {
             try {
                 location.createNewFile();
             } catch (IOException ex) {
-                Logger.getLogger(HFile.class.getName()).log(Level.SEVERE, null, ex);
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
             }
         }
         try ( var out = new ObjectOutputStream(new FileOutputStream(location))) {
             out.writeObject(Encryptor.encryptObject(this));
             out.close();
         } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
@@ -76,7 +77,7 @@ public class HFile implements Serializable {
 
     public void removeReference(FilePointer pointer) {
         references.remove(pointer);
-        if (references.size() == 0) {
+        if (references.isEmpty()) {
             selfDestruct();
         } else {
             update();

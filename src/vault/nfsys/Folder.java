@@ -290,29 +290,29 @@ public class Folder implements Serializable {
     }
 
     public Folder copy() {
-        List<Folder> folders = new ArrayList<>();
-        List<FilePointer> files = new ArrayList<>();
+        List<Folder> foldersCopy = new ArrayList<>();
+        List<FilePointer> filesCopy = new ArrayList<>();
         Folder folder = new Folder();
 
-        if (!this.folders.isEmpty()) {
-            for (Folder fol : this.folders) {
+        if (folders.isEmpty()) {
+            for (Folder fol : folders) {
                 Folder f = fol.copy();
                 f.setParent(folder);
-                folders.add(f);
+                foldersCopy.add(f);
             }
         }
 
-        if (!this.files.isEmpty()) {
-            for (FilePointer file : this.files) {
+        if (files.isEmpty()) {
+            for (FilePointer file : files) {
                 FilePointer copy = file.copy();
                 copy.setParent(folder);
-                files.add(copy);
+                filesCopy.add(copy);
             }
         }
 
         folder.setName(new String(name));
-        folder.setFiles(files);
-        folder.setFolders(folders);
+        folder.setFiles(filesCopy);
+        folder.setFolders(foldersCopy);
         folder.setLocked(isLocked());
 
         return folder;

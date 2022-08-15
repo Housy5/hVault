@@ -33,7 +33,9 @@
           <Border info="org.netbeans.modules.form.compat2.border.TitledBorderInfo">
             <TitledBorder title="Folder Name">
               <Border PropertyName="innerBorder" info="org.netbeans.modules.form.compat2.border.LineBorderInfo">
-                <LineBorder roundedCorners="true"/>
+                <LineBorder roundedCorners="true">
+                  <Color PropertyName="color" blue="80" green="95" red="a4" type="rgb"/>
+                </LineBorder>
               </Border>
               <Font PropertyName="font" name="SansSerif" size="14" style="0"/>
             </TitledBorder>

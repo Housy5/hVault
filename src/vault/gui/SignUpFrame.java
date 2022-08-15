@@ -29,8 +29,13 @@ public class SignUpFrame extends javax.swing.JFrame {
 
         try {
             currentIcon = ImageIO.read(getClass().getResource("/res/vault (256).png"));
-            this.setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
+            setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
         } catch (IOException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                    ex.getMessage(),
+                    "error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -290,12 +295,18 @@ public class SignUpFrame extends javax.swing.JFrame {
             pass2 = pass2.trim();
             
             if (Main.users.containsKey(username)) {
-                JOptionPane.showMessageDialog(this, "<html><h3>This username already exists!");
+                JOptionPane.showMessageDialog(this, 
+                        "<html><h3>This username already exists!",
+                        "info",
+                        JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
             if (!pass1.equals(pass2)) {
-                JOptionPane.showMessageDialog(this, "<html><h3>The passwords didn't match!");
+                JOptionPane.showMessageDialog(this, 
+                        "<html><h3>The passwords didn't match!",
+                        "info",
+                        JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
 
@@ -308,12 +319,19 @@ public class SignUpFrame extends javax.swing.JFrame {
 
             Main.saveUsers();
 
-            JOptionPane.showMessageDialog(this, "<html><h3>Successfully created a new account!");
+            JOptionPane.showMessageDialog(this, 
+                    "<html><h3>Successfully created a new account!",
+                    "info",
+                    JOptionPane.INFORMATION_MESSAGE);
 
             rotateWheel(user);
 
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(SignUpFrame.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, 
+                    ex.getMessage(),
+                    "error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 

@@ -1,7 +1,6 @@
 package vault;
 
 import java.io.File;
-import java.util.Arrays;
 import vault.nfsys.Folder;
 
 public class NameUtilities {

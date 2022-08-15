@@ -8,17 +8,14 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import vault.Constants;
 import vault.Main;
 import vault.NameUtilities;
 import vault.encrypt.Encryptor;
 import vault.gui.Frame;
 
 public class FileSystem implements Serializable {
-
-    private final String filesPath = System.getProperty("user.home") + "/hVault/files/";
 
     private Folder current;
     private final Folder root;
@@ -27,7 +24,7 @@ public class FileSystem implements Serializable {
      * Validates the path where files are stored.
      */
     private void validateSavePath() {
-        File path = new File(filesPath);
+        File path = Constants.FILES_PATH;
         if (path.exists() && path.isDirectory()) {
             return;
         }
@@ -45,7 +42,8 @@ public class FileSystem implements Serializable {
         try ( var out = new ObjectOutputStream(new FileOutputStream(f))) {
             out.writeObject(Encryptor.encryptObject(hFile));
         } catch (IOException ex) {
-            Logger.getLogger(FileSystem.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
 
@@ -58,8 +56,9 @@ public class FileSystem implements Serializable {
         try ( var in = new FileInputStream(file)) {
             return in.readAllBytes();
         } catch (IOException ex) {
-            Logger.getLogger(FileSystem.class.getName()).log(Level.SEVERE, null, ex);
-            return null;
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+            return new byte[] {0};
         }
     }
 
@@ -80,7 +79,7 @@ public class FileSystem implements Serializable {
             }
             sb.append(".vlt");
             result = sb.toString();
-        } while (new File(filesPath + result).exists());
+        } while (new File(Constants.FILES_PATH.getAbsolutePath() + result).exists());
 
         return result;
     }
@@ -255,7 +254,7 @@ public class FileSystem implements Serializable {
                     String newName = NameUtilities.nextFileName(file.getName(), parent);
 
                     if (newName == null) {
-                        JOptionPane.showMessageDialog(Main.frameInstance, "Couldn't add \"" + newName + "\" to the selected folder.");
+                        JOptionPane.showMessageDialog(Main.frameInstance, "Couldn't add \"" + newName + "\" to the selected folder.", "info", JOptionPane.INFORMATION_MESSAGE);
                         continue;
                     }
 
@@ -263,7 +262,7 @@ public class FileSystem implements Serializable {
                     count++;
                 }
             } catch (OversizedFileException e) {
-                JOptionPane.showMessageDialog(Main.frameInstance, "\"" + file.getName() + "\" exceeds the 2gb file limit!");
+                JOptionPane.showMessageDialog(Main.frameInstance, "\"" + file.getName() + "\" exceeds the 2gb file limit!", "warning", JOptionPane.WARNING_MESSAGE);
             }
         }
         return count;
@@ -303,7 +302,7 @@ public class FileSystem implements Serializable {
         
         FilePointer fp = new FilePointer();
         fp.setName(rename);
-        fp.setLocation(filesPath + name);
+        fp.setLocation(Constants.FILES_PATH.getAbsolutePath() + "/"+ name);
         fp.setSize((int) file.length());
         fp.setParent(parent);
 

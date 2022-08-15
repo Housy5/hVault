@@ -14,7 +14,6 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,6 +69,7 @@ public final class Frame extends javax.swing.JFrame {
                     addFile(droppedFiles, folder);
                 } catch (UnsupportedFlavorException | IOException ex) {
                     Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
+                    JOptionPane.showMessageDialog(Main.frameInstance, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -77,8 +77,9 @@ public final class Frame extends javax.swing.JFrame {
         try {
             this.setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
         } catch (IOException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(Main.frameInstance, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
         }
-
     }
 
     private String createTitleMessage(String fullname) {
@@ -171,7 +172,7 @@ public final class Frame extends javax.swing.JFrame {
             }
         });
 
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(new javax.swing.border.LineBorder(new java.awt.Color(0, 0, 0), 1, true), "Folder Name", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("SansSerif", 0, 14))); // NOI18N
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(new javax.swing.border.LineBorder(new java.awt.Color(164, 149, 128), 1, true), "Folder Name", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("SansSerif", 0, 14))); // NOI18N
         jPanel1.setName(""); // NOI18N
         jPanel1.setPreferredSize(new java.awt.Dimension(800, 600));
         jPanel1.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -254,7 +255,10 @@ public final class Frame extends javax.swing.JFrame {
                         if (x == Util.PASSWORD_ACCEPTED) {
                             Export.exportAll(user.fsys.getCurrentFolder().getFiles());
                         } else if (x == Util.PASSWORD_DENIED) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, Constants.ACCESS_DENIED_TEXT);
+                            JOptionPane.showMessageDialog(Main.frameInstance, 
+                                    Constants.ACCESS_DENIED_TEXT,
+                                    "info",
+                                    JOptionPane.INFORMATION_MESSAGE);
                         }
                     }
                 }
@@ -268,9 +272,10 @@ public final class Frame extends javax.swing.JFrame {
                         return;
                     }
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        if (JOptionPane.showConfirmDialog(Main.frameInstance,
-                                "<html><h3>Are you sure you want to delete every file in this folder? (cannot be undone)")
-                                == JOptionPane.YES_OPTION) {
+                        int x = JOptionPane.showConfirmDialog(Main.frameInstance, 
+                                "<html><h3>Are you sure you want to delete every file in this folder? (cannot be undone)");
+                        
+                        if (x == JOptionPane.YES_OPTION) {
                             user.fsys.getCurrentFolder().removeAllFiles();
                             loadFolder(user.fsys.getCurrentFolder());
                             Main.saveUsers();
@@ -330,7 +335,9 @@ public final class Frame extends javax.swing.JFrame {
                         if (!Export.exportTasks.isEmpty()
                                 || !Export.importTasks.isEmpty()
                                 || ImportQueue.instance().isImporting()) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>You can't log out while files are being exported or imported!");
+                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>You can't log out while files are being exported or imported!", 
+                                    "info", 
+                                    JOptionPane.INFORMATION_MESSAGE);
                             return;
                         }
 
@@ -373,27 +380,21 @@ public final class Frame extends javax.swing.JFrame {
                     int x = Util.requestPassword();
                     
                     if (x == Util.PASSWORD_ACCEPTED) {
-                        var newPass = new PasswordDialog("<html><h3>Enter a new password: ").getPassword();
+                        var dialog = new NewPasswordDialog(Main.frameInstance);
+                        String newPass = dialog.getPassword();
+                        
                         if (newPass == null) {
                             return;
                         }
-                        var newPassCheck = new PasswordDialog("<html><h3>Enter your new password again: ").getPassword();
-                        if (newPassCheck == null) {
-                            return;
-                        }
-
-                        newPass = newPass.trim();
-                        newPassCheck = newPassCheck.trim();
                         
-                        if (newPass.equals(newPassCheck)) {
-                            user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
-                            Main.saveUsers();
-                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Successfully changed the password!");
-                        } else {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>The passwords didn't match!");
-                        }
+                        user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
+                        Main.saveUsers();
+                        JOptionPane.showMessageDialog(Main.frameInstance, 
+                                "<html><h3>Successfully updated your password!", 
+                                "info", 
+                                JOptionPane.INFORMATION_MESSAGE);
                     } else if (x == Util.PASSWORD_DENIED) {
-                        JOptionPane.showMessageDialog(Main.frameInstance, Constants.ACCESS_DENIED_TEXT);
+                        JOptionPane.showMessageDialog(Main.frameInstance, Constants.ACCESS_DENIED_TEXT, "info", JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
             });
@@ -402,13 +403,18 @@ public final class Frame extends javax.swing.JFrame {
             search.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    String input = JOptionPane.showInputDialog(Main.frameInstance, "<html><h3>Please enter your search keywords (separate every keyword with a ','): ");
+                    String input = JOptionPane.showInputDialog(Main.frameInstance, 
+                            "<html><h3>Please enter your search keywords (separate every keyword with a ','): ");
                     if (input == null || input.isBlank()) {
                         return;
                     }
                     String[] keyWords = input.split(",");
                     if (keyWords != null && keyWords.length > 0) {
                         List<FilePointer> pointers = user.fsys.search(keyWords);
+                        if (pointers.isEmpty()) {
+                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Sorry, I couldn't find anything :(", "info", JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
                         Folder searchFolder = FolderBuilder.createSearchFolder(user.fsys.getCurrentFolder(), pointers);
                         loadFolder(searchFolder);
                     }
@@ -442,7 +448,10 @@ public final class Frame extends javax.swing.JFrame {
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         if (!Export.exportTasks.isEmpty() || !Export.importTasks.isEmpty() || ImportQueue.instance().isImporting()) {
-            JOptionPane.showMessageDialog(this, "You can't exit while files are being exported or imported.");
+            JOptionPane.showMessageDialog(this, 
+                    "You can't exit while files are being exported or imported.",
+                    "info", 
+                    JOptionPane.INFORMATION_MESSAGE);
         } else {
             System.exit(0);
         }

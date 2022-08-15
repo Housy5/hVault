@@ -28,6 +28,11 @@ public class LoginFrame extends javax.swing.JFrame {
             currentIcon = ImageIO.read(getClass().getResource("/res/vault (256).png"));
             this.setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
         } catch (IOException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                    ex.getMessage(),
+                    "error",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         jTextField1.requestFocus();
@@ -273,10 +278,16 @@ public class LoginFrame extends javax.swing.JFrame {
             if (Arrays.equals(hash, user.hash)) {
                 rotateWheel(user);
             } else {
-                JOptionPane.showMessageDialog(this, "<html><h3>Wrong username or password!");
+                JOptionPane.showMessageDialog(this, 
+                        "<html><h3>Wrong username or password!",
+                        "info",
+                        JOptionPane.INFORMATION_MESSAGE);
             }
         } else {
-            JOptionPane.showMessageDialog(this, "<html><h3>Wrong username or password!");
+            JOptionPane.showMessageDialog(this, 
+                    "<html><h3>Wrong username or password!",
+                    "info",
+                    JOptionPane.INFORMATION_MESSAGE);
         }
     }
 

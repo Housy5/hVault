@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import vault.gui.Frame;
@@ -31,7 +32,8 @@ public class Main {
     static {
         try {
             UIManager.setLookAndFeel(new FlatDarkLaf());
-        } catch (Exception e) {
+        } catch (UnsupportedLookAndFeelException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
 
@@ -122,16 +124,15 @@ public class Main {
      * @throws IOException
      */
     public static void saveUsers() {
-        ObjectOutputStream out = null;
-        try {
-            File f = Constants.SAVE_FILE;
-            out = new ObjectOutputStream(new FileOutputStream(f));
+        File f = Constants.SAVE_FILE;
+        try (var out = new ObjectOutputStream(new FileOutputStream(f))){
             out.writeObject(users);
-            out.close();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -143,7 +144,6 @@ public class Main {
      * already exists.
      */
     private static boolean isUniqueSalt(String salt) {
-
         if (users.isEmpty()) {
             return true;
         }
@@ -153,6 +153,7 @@ public class Main {
                 return false;
             }
         }
+        
         return true;
     }
 
@@ -161,11 +162,10 @@ public class Main {
      */
     private static void loadUsers() {
         File f = Constants.SAVE_FILE;
+        
         if (f.exists()) {
-            try {
-                var in = new ObjectInputStream(new FileInputStream(f));
+            try (var in = new ObjectInputStream(new FileInputStream(f))){
                 users = (HashMap<String, User>) in.readObject();
-                in.close();
             } catch (FileNotFoundException ex) {
                 users = new HashMap<>();
             } catch (IOException | ClassNotFoundException ex) {

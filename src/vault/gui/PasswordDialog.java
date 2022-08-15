@@ -18,7 +18,7 @@ import vault.Main;
  */
 public class PasswordDialog extends javax.swing.JDialog {
 
-    private String password = null;
+    private String password = "";
 
 //<editor-fold defaultstate="collapsed" desc="comment">
     private void addListeners() {
