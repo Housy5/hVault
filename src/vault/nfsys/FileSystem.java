@@ -188,6 +188,7 @@ public class FileSystem implements Serializable {
 
     public int addFilesV2(List<File> files, Folder parent) {
         int count = 0;
+        validateSavePath();
         
         for (File file : files) {
             Main.frameInstance.showState(String.format(Frame.PROGRESS_STATE, files.indexOf(file), files.size()));

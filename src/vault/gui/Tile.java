@@ -133,8 +133,8 @@ public class Tile extends JPanel {
                     if (SwingUtilities.isLeftMouseButton(e)) {
 
                         String msg = type == FileType.FILE
-                                ? "<html><h3>Are you sure you want to delete this file? (cannot be undone)"
-                                : "<html><h3>Are you sure you want to delete this folder and all of its content? (cannot be undone)";
+                                ? "(Cannot be undone) Are you sure you want to delete this file?"
+                                : "(Cannot be undone) Are you sure you want to delete this folder and all of its content?";
                         int opt = JOptionPane.showConfirmDialog(frameInstance, msg);
 
                         if (opt == JOptionPane.YES_OPTION) {
@@ -232,13 +232,13 @@ public class Tile extends JPanel {
                 }
             });
 
-            var setPassword = new JMenuItem("Set Password Protection");
+            var setPassword = new JMenuItem("Enable Password Protection");
             setPassword.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
                         int x = JOptionPane.showConfirmDialog(frameInstance, 
-                                "<html><h3>Are you sure you want to enable password protection on this folder?");
+                                "Would you like to protect this folder with a password?");
                         if (x == JOptionPane.YES_OPTION) {
                             folder.setLocked(true);
                         }
@@ -246,7 +246,7 @@ public class Tile extends JPanel {
                 }
             });
 
-            var removePassword = new JMenuItem("Remove Password Protection");
+            var removePassword = new JMenuItem("Disable Password Protection");
             removePassword.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
@@ -306,8 +306,8 @@ public class Tile extends JPanel {
 
         do {
             String msg = count == 0
-                    ? "<html><h3>Enter a new name (no extension): "
-                    : "<html><h3>This name already exists or is invalid!</h3><hr><h3>Please try an other one: ";
+                    ? "Enter a new file name (No extension): "
+                    : "The name you have entered already exists or is invalid!";
             newName = JOptionPane.showInputDialog(frameInstance, msg, originalName);
             if (newName == null) {
                 return;
@@ -329,8 +329,8 @@ public class Tile extends JPanel {
 
         do {
             String msg = count == 0
-                    ? "<html><h3>Enter a new name (no extension): "
-                    : "<html><h3>This name already exists or is invalid!</h2><hr><h3>Please try an other one: ";
+                    ? "Enter a new folder name:  "
+                    : "The name you have entered already exists or is invalid!";
             newName = JOptionPane.showInputDialog(frameInstance, msg, folder.getName());
             if (newName == null) {
                 return;
@@ -350,7 +350,7 @@ public class Tile extends JPanel {
      * Sequence to add a folder.
      */
     static void addFolder(JComponent parent) {
-        String folname = JOptionPane.showInputDialog(parent, "<html><h3>The folder's name: ");
+        String folname = JOptionPane.showInputDialog(parent, "Name of the folder: ");
         if (folname == null) {
             return;
         }
@@ -358,7 +358,7 @@ public class Tile extends JPanel {
         var user = frameInstance.user;
         if (user.fsys.getCurrentFolder().containsFolderName(folname)) {
             JOptionPane.showMessageDialog(Main.frameInstance, 
-                    "<html><h3>This folder already exists!",
+                    "This folder already exists!",
                     "info",
                     JOptionPane.INFORMATION_MESSAGE);
             return;
@@ -658,7 +658,7 @@ public class Tile extends JPanel {
 
                                 if (newName == null) {
                                     JOptionPane.showMessageDialog(frameInstance, 
-                                            "<html><h3>Couldn't move \"" + pointer.getName() + "\" :( ",
+                                            "Couldn't move \"" + pointer.getName() + "\" :( ",
                                             "warning",
                                             JOptionPane.WARNING_MESSAGE);
                                     continue;

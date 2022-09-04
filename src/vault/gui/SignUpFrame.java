@@ -296,7 +296,7 @@ public class SignUpFrame extends javax.swing.JFrame {
             
             if (Main.users.containsKey(username)) {
                 JOptionPane.showMessageDialog(this, 
-                        "<html><h3>This username already exists!",
+                        "It seems like there already is an user with that username.",
                         "info",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -304,7 +304,7 @@ public class SignUpFrame extends javax.swing.JFrame {
 
             if (!pass1.equals(pass2)) {
                 JOptionPane.showMessageDialog(this, 
-                        "<html><h3>The passwords didn't match!",
+                        "The entered passwords didn't match.",
                         "info",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
@@ -320,7 +320,7 @@ public class SignUpFrame extends javax.swing.JFrame {
             Main.saveUsers();
 
             JOptionPane.showMessageDialog(this, 
-                    "<html><h3>Successfully created a new account!",
+                    "A new account was successfully created.",
                     "info",
                     JOptionPane.INFORMATION_MESSAGE);
 

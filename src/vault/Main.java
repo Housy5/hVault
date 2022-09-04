@@ -9,9 +9,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -50,7 +50,7 @@ public class Main {
      * @return returns the generated salt.
      */
     public static String generateSalt() {
-        var random = new Random();
+        var random = new SecureRandom();
         var sb = new StringBuilder();
         var min = 33; // ASCII '!'
         var max = 127; // ASCII 'DEL'

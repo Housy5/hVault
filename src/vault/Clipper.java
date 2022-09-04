@@ -45,7 +45,7 @@ public class Clipper {
         var fsys = Main.frameInstance.user.fsys;
         
         if (fsys.getCurrentFolder().isSearchFolder()) {
-            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>You can't paste here!", "info", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(Main.frameInstance, "You are not allowed to paste stuff here.", "info", JOptionPane.INFORMATION_MESSAGE);
             return; 
         }
 
@@ -57,7 +57,7 @@ public class Clipper {
                 newName = NameUtilities.nextFileName(filePointer.getName(), current);
                 
                 if (newName == null) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Couldn't paste the file \"" + filePointer.getName() + "\" over here. :(", "info", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(Main.frameInstance, "We couldn't paste the file \"" + filePointer.getName() + "\" over here.", "info", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
             }
@@ -84,7 +84,7 @@ public class Clipper {
                 newName = NameUtilities.nextFolderName(fol.getName(), current);
 
                 if (newName == null) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Couldn't paste the folder \"" + fol.getName() + "\" over here. :(", "info", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(Main.frameInstance, "We couldn't paste the folder \"" + fol.getName() + "\" over here.", "info", JOptionPane.INFORMATION_MESSAGE);
                     return;
                 }
             }

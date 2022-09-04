@@ -82,7 +82,7 @@ public class StartUpMessage extends javax.swing.JDialog {
         jTextArea1.setEditable(false);
         jTextArea1.setColumns(20);
         jTextArea1.setRows(5);
-        jTextArea1.setText("Welcome to hVault!\n------------------------------------------------------------------------------------\n\nQuick Tips: \n\n-Every operation is accessible through right-clicking.\n-To add files you can drag them to the vault from your desktop.\n-To organize your vault, you can create folders to keep everything sorted.\n-You can open files by just left clicking on them. \n\nHave fun! :) \n\n");
+        jTextArea1.setText("Welcome to hVault!\n------------------------------------------------------------------------------------\n\nQuick Tips: \n\n-Using the right-click menu, you can access every operation.\n-You can drag files from your desktop to the vault.\n-It's easy to organize your vault by creating folders.\n-Simply left-click on files to open them. \n\nHave fun! :) \n\n");
         jScrollPane1.setViewportView(jTextArea1);
 
         jPanel2.add(jScrollPane1, "card2");

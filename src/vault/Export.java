@@ -18,7 +18,7 @@ import vault.nfsys.FilePointer;
 
 public class Export {
 
-    private static final String TEMP_PATH = System.getProperty("user.home") + "/hVault/temp/";
+    private static final String TEMP_PATH = Constants.USER_HOME_PATH + "/temp/";
 
     public final static List<IOTask> exportTasks = new LinkedList<>();
     public final static List<IOTask> importTasks = new LinkedList<>();
@@ -104,7 +104,7 @@ public class Export {
 
     public static File exportTemporaryFile(FilePointer f) {
         File file = new File(TEMP_PATH + generateTempName(NameValidator.splitNameAndExtension(f.getName())[1]));
-        File dir = new File(System.getProperty("user.home") + "/hVault/temp");
+        File dir = new File(Constants.USER_HOME_PATH + "/temp");
         if (!dir.exists()) {
             dir.mkdirs();
         }
@@ -136,7 +136,7 @@ public class Export {
                 export(file, dir, false);
             }
 
-            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Finished exporting all files!", "info", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(Main.frameInstance, "We have finished exporting all the files.", "info", JOptionPane.INFORMATION_MESSAGE);
 
         }
     }
@@ -148,7 +148,7 @@ public class Export {
             newName = NameUtilities.nextFileName(f.getName(), null);
             
             if (newName == null) {
-                JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Can't export \"" + f.getName() + "\" to the specified location :(", "info", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(Main.frameInstance, "We couldn't export \"" + f.getName() + "\" to the specified location.", "info", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
         }
@@ -169,11 +169,11 @@ public class Export {
                 Main.frameInstance.setCursor(Cursor.getDefaultCursor());
                 
                 if (flag) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>"+f.getName() + " has finished exporting.", "info", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(Main.frameInstance, f.getName() + " has finished exporting.", "info", JOptionPane.INFORMATION_MESSAGE);
                 }
                 exportTasks.remove(task);
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(Main.frameInstance, "<html><h2>Export failed!\n" + e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(Main.frameInstance, "Export failed!\n" + e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
             }
         }).start();

@@ -16,8 +16,8 @@ public class Constants {
     public final static Color BORDER_BACKGROUND_COLOR = new Color(0x17202a);
     public final static Color FONT_COLOR = new Color(0x657c8c);
 
-    public final static String PASSWORD_POPUP_TEXT = "<html><h3>Please enter your password: ";
-    public final static String ACCESS_DENIED_TEXT = "<html><h3>Access denied!";
+    public final static String PASSWORD_POPUP_TEXT = "Please enter your password: ";
+    public final static String ACCESS_DENIED_TEXT = "You have been denied access!";
 
     public static MessageDigest messageDigest = null;
 

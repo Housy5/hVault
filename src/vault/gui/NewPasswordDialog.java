@@ -56,7 +56,7 @@ public class NewPasswordDialog extends javax.swing.JDialog {
 
         jLabel1.setText("New Password: ");
 
-        jLabel2.setText("Enter your password again: ");
+        jLabel2.setText("Enter the password again: ");
 
         jPasswordField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {

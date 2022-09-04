@@ -90,7 +90,7 @@ public final class Frame extends javax.swing.JFrame {
         return result;
     }
 
-    public final static String IDLE_STATE = "Idling...";
+    public final static String IDLE_STATE = "Waiting...";
     public final static String PROGRESS_STATE = "%d/%d Files.";
     public final static String DELETING_STATE = "Deleting Stuff...";
     
@@ -188,7 +188,7 @@ public final class Frame extends javax.swing.JFrame {
         jPanel2.setDoubleBuffered(false);
         jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
 
-        jLabel1.setText("Idling...");
+        jLabel1.setText("Waiting...");
         jPanel2.add(jLabel1);
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.SOUTH);
@@ -273,7 +273,7 @@ public final class Frame extends javax.swing.JFrame {
                     }
                     if (SwingUtilities.isLeftMouseButton(e)) {
                         int x = JOptionPane.showConfirmDialog(Main.frameInstance, 
-                                "<html><h3>Are you sure you want to delete every file in this folder? (cannot be undone)");
+                                "(Cannot be undone) Are you sure you want to delete every file in this folder?");
                         
                         if (x == JOptionPane.YES_OPTION) {
                             user.fsys.getCurrentFolder().removeAllFiles();
@@ -335,13 +335,13 @@ public final class Frame extends javax.swing.JFrame {
                         if (!Export.exportTasks.isEmpty()
                                 || !Export.importTasks.isEmpty()
                                 || ImportQueue.instance().isImporting()) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>You can't log out while files are being exported or imported!", 
+                            JOptionPane.showMessageDialog(Main.frameInstance, "When exporting or importing files, you can't log out!", 
                                     "info", 
                                     JOptionPane.INFORMATION_MESSAGE);
                             return;
                         }
 
-                        int x = JOptionPane.showConfirmDialog(Main.frameInstance, "<html><h3>Are you sure you want to log out?");
+                        int x = JOptionPane.showConfirmDialog(Main.frameInstance, "Would you like to log out?");
 
                         if (x == JOptionPane.YES_OPTION) {
                             ImportQueue.instance().stopExporting();
@@ -390,7 +390,7 @@ public final class Frame extends javax.swing.JFrame {
                         user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
                         Main.saveUsers();
                         JOptionPane.showMessageDialog(Main.frameInstance, 
-                                "<html><h3>Successfully updated your password!", 
+                                "Your password has been successfully updated!", 
                                 "info", 
                                 JOptionPane.INFORMATION_MESSAGE);
                     } else if (x == Util.PASSWORD_DENIED) {
@@ -404,7 +404,7 @@ public final class Frame extends javax.swing.JFrame {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     String input = JOptionPane.showInputDialog(Main.frameInstance, 
-                            "<html><h3>Please enter your search keywords (separate every keyword with a ','): ");
+                            "Your search keywords (separated by ','):");
                     if (input == null || input.isBlank()) {
                         return;
                     }
@@ -412,7 +412,7 @@ public final class Frame extends javax.swing.JFrame {
                     if (keyWords != null && keyWords.length > 0) {
                         List<FilePointer> pointers = user.fsys.search(keyWords);
                         if (pointers.isEmpty()) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "<html><h3>Sorry, I couldn't find anything :(", "info", JOptionPane.INFORMATION_MESSAGE);
+                            JOptionPane.showMessageDialog(Main.frameInstance, "There were no results for your search.", "info", JOptionPane.INFORMATION_MESSAGE);
                             return;
                         }
                         Folder searchFolder = FolderBuilder.createSearchFolder(user.fsys.getCurrentFolder(), pointers);
@@ -449,7 +449,7 @@ public final class Frame extends javax.swing.JFrame {
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         if (!Export.exportTasks.isEmpty() || !Export.importTasks.isEmpty() || ImportQueue.instance().isImporting()) {
             JOptionPane.showMessageDialog(this, 
-                    "You can't exit while files are being exported or imported.",
+                    "When exporting or importing files, you can't exit!",
                     "info", 
                     JOptionPane.INFORMATION_MESSAGE);
         } else {

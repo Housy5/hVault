@@ -279,13 +279,13 @@ public class LoginFrame extends javax.swing.JFrame {
                 rotateWheel(user);
             } else {
                 JOptionPane.showMessageDialog(this, 
-                        "<html><h3>Wrong username or password!",
+                        Constants.ACCESS_DENIED_TEXT,
                         "info",
                         JOptionPane.INFORMATION_MESSAGE);
             }
         } else {
             JOptionPane.showMessageDialog(this, 
-                    "<html><h3>Wrong username or password!",
+                    Constants.ACCESS_DENIED_TEXT,
                     "info",
                     JOptionPane.INFORMATION_MESSAGE);
         }
