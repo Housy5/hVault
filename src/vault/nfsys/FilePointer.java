@@ -75,7 +75,7 @@ public class FilePointer implements Serializable {
     
     public byte[] getBytes() {
         var file = load();
-        return file == null ? null : file.getBytes();
+        return file == null ? new byte[] {} : file.getBytes();
     }
 
     public String getLocation() {
@@ -140,7 +140,7 @@ public class FilePointer implements Serializable {
         }
     }
 
-    protected void setSize(int size) {
+    public void setSize(int size) {
         this.size = size;
     }
 

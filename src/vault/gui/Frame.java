@@ -9,6 +9,7 @@ import java.awt.dnd.DragGestureEvent;
 import java.awt.dnd.DragSource;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -24,14 +25,15 @@ import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JSeparator;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 import vault.Export;
 import vault.Main;
 import vault.Clipper;
 import vault.Constants;
 import vault.FileTransferHandler;
-import vault.ImportQueue;
-import vault.ImportTicket;
+import vault.queue.ImportQueue;
+import vault.queue.ImportTicket;
 import vault.Util;
 import vault.nfsys.Folder;
 import vault.nfsys.FilePointer;
@@ -43,6 +45,7 @@ public final class Frame extends javax.swing.JFrame {
     public User user;
 
     private final int maxTitleLength = 50;
+    private final Timer importTimer;
 
     public Frame(User user) {
         initComponents();
@@ -74,11 +77,25 @@ public final class Frame extends javax.swing.JFrame {
             }
         });
 
+        importTimer = new Timer(500, (ActionEvent e) -> {
+            updateProgressLabel();
+        });
+        importTimer.start();
+        
         try {
             this.setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
         } catch (IOException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(Main.frameInstance, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void updateProgressLabel() {
+        ImportQueue queue = ImportQueue.instance();
+        if (queue.isImporting()) {
+            jLabel1.setText(String.format(PROGRESS_STATE, queue.count()));
+        } else {
+            jLabel1.setText(IDLE_STATE);
         }
     }
 
@@ -91,7 +108,7 @@ public final class Frame extends javax.swing.JFrame {
     }
 
     public final static String IDLE_STATE = "Waiting...";
-    public final static String PROGRESS_STATE = "%d/%d Files.";
+    public final static String PROGRESS_STATE = "%d files left.";
     public final static String DELETING_STATE = "Deleting Stuff...";
     
     public void showState(String state) {
@@ -204,7 +221,7 @@ public final class Frame extends javax.swing.JFrame {
      */
     public void addFile(List<File> f, Folder folder) {
         ImportQueue queue = ImportQueue.instance();
-        queue.enqueue(new ImportTicket(f, folder));
+        f.forEach(x -> queue.addTicket(new ImportTicket(x, folder)));
     }
 
     /**
@@ -345,6 +362,8 @@ public final class Frame extends javax.swing.JFrame {
 
                         if (x == JOptionPane.YES_OPTION) {
                             ImportQueue.instance().stopExporting();
+                            importTimer.stop();
+                            Export.stopIOMonitor();
                             LoginFrame lf = new LoginFrame();
                             lf.setLocationRelativeTo(Main.frameInstance);
                             lf.setVisible(true);
@@ -449,7 +468,7 @@ public final class Frame extends javax.swing.JFrame {
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         if (!Export.exportTasks.isEmpty() || !Export.importTasks.isEmpty() || ImportQueue.instance().isImporting()) {
             JOptionPane.showMessageDialog(this, 
-                    "When exporting or importing files, you can't exit!",
+                    "You cannot exit the program while importing or exporting files!",
                     "info", 
                     JOptionPane.INFORMATION_MESSAGE);
         } else {

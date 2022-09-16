@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import vault.NameUtilities;
 
 public class Folder implements Serializable {
 
@@ -96,10 +97,18 @@ public class Folder implements Serializable {
     }
 
     public void addFolder(Folder folder) {
-        if (folder == null || folders.contains(folder)) {
+        if (folder == null) {
             return;
         }
 
+        if (containsFolderName(folder.getName())) {
+            final String newName = NameUtilities.nextFolderName(name, this);
+            if (newName == null) {
+                return;
+            }
+            folder.setName(newName);
+        }
+        
         folders.add(folder);
         sortFolders();
     }

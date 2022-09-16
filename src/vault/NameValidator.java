@@ -1,5 +1,7 @@
 package vault;
 
+import java.util.Arrays;
+import java.util.stream.Stream;
 import vault.nfsys.FilePointer;
 import vault.nfsys.Folder;
 
@@ -9,7 +11,7 @@ import vault.nfsys.Folder;
  */
 public class NameValidator {
 
-    public static final char[] ILLEGAL_CHARS = {'/', '<', '>', ';', '\"', '\\',
+    public static final Character[] ILLEGAL_CHARS = {'/', '<', '>', ';', '\"', '\\',
         '|', '?', '*', '^', '{', '}', '[', ']'};
     public static final int MAX_LENGTH = 100;
 
@@ -30,10 +32,10 @@ public class NameValidator {
         }
         return !containsIllegalChar(folderName) && folderName.length() < 50;
     }
-    
+
     public static boolean isValidNameExcluded(String fileName, FilePointer exclude, Folder parent) {
         var name = splitNameAndExtension(fileName)[1];
-        
+
         if (fileName.endsWith(".") || fileName.endsWith(" ")
                 || fileName.isBlank() || fileName.length() > MAX_LENGTH
                 || isFilledWith('.', fileName.toCharArray())
@@ -50,10 +52,10 @@ public class NameValidator {
 
         return !parent.containsFileNameExcluded(fileName, exclude);
     }
-    
+
     public static boolean isValidName(String fileName, Folder parent) {
         var name = splitNameAndExtension(fileName)[1];
-        
+
         if (fileName.endsWith(".") || fileName.endsWith(" ")
                 || fileName.isBlank() || fileName.length() > MAX_LENGTH
                 || isFilledWith('.', fileName.toCharArray())
@@ -72,35 +74,25 @@ public class NameValidator {
     }
 
     public static String[] splitNameAndExtension(String fileName) {
-        StringBuilder name = new StringBuilder();
-        StringBuilder ext = new StringBuilder();
-        boolean flag = false;
+        int sepPoint = fileName.length();
 
-        for (int i = 0; i < fileName.length(); i++) {
-            char c = fileName.charAt(i);
-
-            if (c == '.') {
-                flag = true;
-            } else if (flag && c == '.') {
-                name.append(ext);
-                ext.setLength(0);
-            } else if (flag) {
-                ext.append(c);
-            } else {
-                name.append(c);
+        for (int i = fileName.length() - 1; i >= 0; i--) {
+            if (fileName.charAt(i) == '.') {
+                sepPoint = i;
+                break;
             }
         }
 
-        return new String[]{name.toString(), ext.toString()};
+        String name = fileName.substring(0, sepPoint);
+        String ext = sepPoint == fileName.length() ? "" : fileName.substring(sepPoint + 1, fileName.length());
+
+        return new String[]{name, ext};
     }
 
     private static boolean containsIllegalChar(String fileName) {
-        for (char c : ILLEGAL_CHARS) {
-            if (fileName.contains(String.valueOf(c))) {
-                return true;
-            }
-        }
-        return false;
+        return Arrays.stream(ILLEGAL_CHARS)
+                .filter(c -> fileName.contains(c.toString()))
+                .count() > 0;
     }
 
     private static boolean isFilledWith(char x, char[] arr) {

@@ -1,5 +1,6 @@
 package vault;
 
+import vault.queue.ImportQueue;
 import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.io.File;
@@ -41,6 +42,10 @@ public class Export {
             }
         });
         ioTimer.start();
+    }
+    
+    public static void stopIOMonitor() {
+        ioTimer.stop();
     }
 
     public static class IOTask {
