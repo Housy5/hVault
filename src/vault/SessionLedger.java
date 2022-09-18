@@ -35,10 +35,19 @@ public class SessionLedger {
 
     static boolean attemptStart() {
         if (isRunning()) {
-            JOptionPane.showMessageDialog(null, String.format("""
-            <html><body style='width: 400px;'><h3>Error! We detected an instance that's already running on this computer.</h3><p>In case this message started appearing after a crash. And you can't run the program even when there is no other instance currently active. Go to: <strong>\"%s\"</strong> and delete <strong>\"ledger.vlt\"</strong>. Then try restarting the program.
-            """, LEDGER_FILE.getParent()), "info", JOptionPane.INFORMATION_MESSAGE);
-            return false;
+            int option = JOptionPane.showConfirmDialog(null, """
+                                                             There seems to be an already running instance!
+                                                             
+                                                             Would you like to start another instance?
+                                                             (Force a new instance only when you are certain there are no other instances running.
+                                                             A new instance being forced while an active instance is running may result in loss or corruption of data.)
+                                                             """);
+            if (option == JOptionPane.YES_OPTION) {
+                LEDGER_FILE.delete();
+                return attemptStart();
+            } else {
+                return false;
+            }
         } else {
             startSession();
             return true;

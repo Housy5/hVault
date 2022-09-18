@@ -5,6 +5,7 @@ import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +17,9 @@ import javax.swing.Timer;
 import vault.encrypt.Encryptor;
 import vault.gui.Frame;
 import vault.nfsys.FilePointer;
+import vault.nfsys.Folder;
+import vault.queue.ExportQueue;
+import vault.queue.ExportTicket;
 
 public class Export {
 
@@ -26,18 +30,23 @@ public class Export {
 
     private static Timer ioTimer;
 
+    private static boolean isImporting() {
+        return !importTasks.isEmpty() || ImportQueue.instance().isImporting();
+    }
+    
+    private static boolean isExporting() {
+        return !exportTasks.isEmpty() || ExportQueue.instance().isExporting();
+    }
+    
     public static void startIOMonitor(Frame f) {
         if (ioTimer != null && ioTimer.isRunning()) {
             ioTimer.stop();
         }
 
         ioTimer = new Timer(250, (ActionEvent e) -> {
-            if (((exportTasks.isEmpty() && importTasks.isEmpty()) && !ImportQueue.instance().isImporting())
-                    && f.getCursor().getType() != Cursor.DEFAULT_CURSOR) {
+            if ((!isImporting() && !isExporting()) && f.getCursor().getType() != Cursor.DEFAULT_CURSOR) {
                 f.setCursor(Cursor.getDefaultCursor());
-            } else if (((!exportTasks.isEmpty() || !importTasks.isEmpty())
-                    || ImportQueue.instance().isImporting())
-                    && f.getCursor().getType() != Cursor.WAIT_CURSOR) {
+            } else if ((isImporting() || isExporting()) && f.getCursor().getType() != Cursor.WAIT_CURSOR) {
                 f.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             }
         });
@@ -119,13 +128,25 @@ public class Export {
         return file;
     }
 
-    public static void export(FilePointer f) {
+    private static void export(FilePointer f) {
         var chooser = createChooser();
         var result = chooser.showSaveDialog(Main.frameInstance);
 
         if (result == JFileChooser.APPROVE_OPTION) {
-            File dir = new File(chooser.getSelectedFile().getAbsolutePath() + "/" + f.getName());
-            export(f, dir, true);
+            ExportQueue.instance().addTicket(new ExportTicket(f, chooser.getSelectedFile().toPath()));
+        }
+    }
+    
+    public static void exportFile(FilePointer f) {
+        export(f);
+    }
+    
+    public static void exportFolder(Folder folder) {
+        var chooser = createChooser();
+        var result = chooser.showSaveDialog(Main.frameInstance);
+        
+        if (result == JFileChooser.APPROVE_OPTION) {
+            ExportQueue.instance().addTicket(new ExportTicket(folder, chooser.getSelectedFile().toPath()));
         }
     }
 
@@ -134,15 +155,9 @@ public class Export {
         var result = chooser.showSaveDialog(Main.frameInstance);
 
         if (result == JFileChooser.APPROVE_OPTION) {
-            String path = chooser.getSelectedFile().getAbsolutePath();
-
-            for (var file : files) {
-                File dir = new File(path + "/" + file.getName());
-                export(file, dir, false);
-            }
-
-            JOptionPane.showMessageDialog(Main.frameInstance, "We have finished exporting all the files.", "info", JOptionPane.INFORMATION_MESSAGE);
-
+            Path path = chooser.getSelectedFile().toPath();
+            ExportQueue queue = ExportQueue.instance();
+            files.forEach(file -> queue.addTicket(new ExportTicket(file, path)));
         }
     }
 

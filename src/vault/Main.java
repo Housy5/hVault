@@ -144,17 +144,7 @@ public class Main {
      * already exists.
      */
     private static boolean isUniqueSalt(String salt) {
-        if (users.isEmpty()) {
-            return true;
-        }
-
-        for (var user : users.values()) {
-            if (user.salt.equalsIgnoreCase(salt)) {
-                return false;
-            }
-        }
-        
-        return true;
+        return users.values().stream().filter(user -> user.salt.equalsIgnoreCase(salt)).count() == 0;
     }
 
     /**

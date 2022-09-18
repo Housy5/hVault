@@ -20,10 +20,11 @@ import vault.nfsys.Folder;
 import vault.nfsys.FolderBuilder;
 import vault.nfsys.HFile;
 
-public class ImportQueue extends Thread {
+public class ImportQueue implements Runnable {
 
     private boolean importing = false;
-    private boolean running = true;
+    private boolean running = false;
+    private Thread thread;
 
     private final long sleepTime = 1000;
     private final Queue<ImportTicket> tickets;
@@ -170,7 +171,15 @@ public class ImportQueue extends Thread {
         }
     }
 
-    public final void stopExporting() {
+    public final void start() {
+        if (running)
+            return;
+        running = true;
+        thread = new Thread(this);
+        thread.start();
+    }
+    
+    public final void stop() {
         running = false;
         instance = null;
     }

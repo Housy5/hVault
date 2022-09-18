@@ -15,6 +15,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,14 +39,15 @@ import vault.Util;
 import vault.nfsys.Folder;
 import vault.nfsys.FilePointer;
 import vault.nfsys.FolderBuilder;
+import vault.queue.ExportQueue;
 import vault.user.User;
 
 public final class Frame extends javax.swing.JFrame {
 
     public User user;
+    private Timer progressTimer;
 
     private final int maxTitleLength = 50;
-    private final Timer importTimer;
 
     public Frame(User user) {
         initComponents();
@@ -58,7 +60,14 @@ public final class Frame extends javax.swing.JFrame {
         user.fsys.validateFiles();
         Main.saveUsers();
         user.fsys.cd(user.fsys.getRoot());
+        
+        addDropTarget();
+        
+        initTimer();
+        initIcon();
+    }
 
+    private void addDropTarget() {
         jPanel1.setDropTarget(new DropTarget() {
             @Override
             public synchronized void drop(DropTargetDropEvent evt) {
@@ -76,24 +85,31 @@ public final class Frame extends javax.swing.JFrame {
                 }
             }
         });
+    }
 
-        importTimer = new Timer(500, (ActionEvent e) -> {
+    private void initTimer() {
+        progressTimer = new Timer(500, (ActionEvent e) -> {
             updateProgressLabel();
         });
-        importTimer.start();
-        
+        progressTimer.start();
+    }
+
+    private void initIcon() {
         try {
             this.setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
         } catch (IOException ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(Main.frameInstance, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     private void updateProgressLabel() {
-        ImportQueue queue = ImportQueue.instance();
-        if (queue.isImporting()) {
-            jLabel1.setText(String.format(PROGRESS_STATE, queue.count()));
+        ImportQueue importQueue = ImportQueue.instance();
+        ExportQueue exportQueue = ExportQueue.instance();
+
+        if (importQueue.isImporting()) {
+            jLabel1.setText(String.format("Importing: %d files left.", importQueue.count()));
+        } else if (exportQueue.isExporting()) {
+            jLabel1.setText(String.format("Exporting: %d files left.", exportQueue.count()));
         } else {
             jLabel1.setText(IDLE_STATE);
         }
@@ -108,13 +124,11 @@ public final class Frame extends javax.swing.JFrame {
     }
 
     public final static String IDLE_STATE = "Waiting...";
-    public final static String PROGRESS_STATE = "%d files left.";
-    public final static String DELETING_STATE = "Deleting Stuff...";
-    
+
     public void showState(String state) {
         jLabel1.setText(state);
-    } 
-    
+    }
+
     /**
      * Loads the specified folder to the screen.
      *
@@ -126,21 +140,16 @@ public final class Frame extends javax.swing.JFrame {
         String titleMsg = createTitleMessage(folder.getFullName());
         ((TitledBorder) jPanel1.getBorder()).setTitle(titleMsg);
 
-        for (var comp : jPanel1.getComponents()) {
-            if (comp instanceof Tile) {
-                jPanel1.remove(comp);
-            }
-        }
+        Arrays.stream(jPanel1.getComponents())
+                .filter(component -> component instanceof Tile)
+                .forEach(component -> jPanel1.remove(component));
 
         if (folder.getParent() != null) {
             var parentTile = new Tile("..", folder.getParent());
             jPanel1.add(parentTile);
         }
-
-        for (var fol : folder.getFolders()) {
-            var tile = new Tile(fol);
-            jPanel1.add(tile);
-        }
+        
+        folder.getFolders().forEach(fol -> jPanel1.add(new Tile(fol)));
 
         for (var hFile : folder.getFiles()) {
             var tile = new Tile(hFile);
@@ -244,11 +253,11 @@ public final class Frame extends javax.swing.JFrame {
             return;
         }
         if (SwingUtilities.isRightMouseButton(evt)) {
-            
+
             if (user.fsys.getCurrentFolder().isSearchFolder()) {
                 return;
             }
-            
+
             var menu = new JPopupMenu();
 
             var refresh = new JMenuItem("Refresh");
@@ -268,11 +277,11 @@ public final class Frame extends javax.swing.JFrame {
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
                         int x = Util.requestPassword();
-                        
+
                         if (x == Util.PASSWORD_ACCEPTED) {
                             Export.exportAll(user.fsys.getCurrentFolder().getFiles());
                         } else if (x == Util.PASSWORD_DENIED) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, 
+                            JOptionPane.showMessageDialog(Main.frameInstance,
                                     Constants.ACCESS_DENIED_TEXT,
                                     "info",
                                     JOptionPane.INFORMATION_MESSAGE);
@@ -289,9 +298,9 @@ public final class Frame extends javax.swing.JFrame {
                         return;
                     }
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        int x = JOptionPane.showConfirmDialog(Main.frameInstance, 
+                        int x = JOptionPane.showConfirmDialog(Main.frameInstance,
                                 "(Cannot be undone) Are you sure you want to delete every file in this folder?");
-                        
+
                         if (x == JOptionPane.YES_OPTION) {
                             user.fsys.getCurrentFolder().removeAllFiles();
                             loadFolder(user.fsys.getCurrentFolder());
@@ -351,9 +360,10 @@ public final class Frame extends javax.swing.JFrame {
 
                         if (!Export.exportTasks.isEmpty()
                                 || !Export.importTasks.isEmpty()
-                                || ImportQueue.instance().isImporting()) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "When exporting or importing files, you can't log out!", 
-                                    "info", 
+                                || ImportQueue.instance().isImporting()
+                                || ExportQueue.instance().isExporting()) {
+                            JOptionPane.showMessageDialog(Main.frameInstance, "When exporting or importing files, you can't log out!",
+                                    "info",
                                     JOptionPane.INFORMATION_MESSAGE);
                             return;
                         }
@@ -361,8 +371,9 @@ public final class Frame extends javax.swing.JFrame {
                         int x = JOptionPane.showConfirmDialog(Main.frameInstance, "Would you like to log out?");
 
                         if (x == JOptionPane.YES_OPTION) {
-                            ImportQueue.instance().stopExporting();
-                            importTimer.stop();
+                            ImportQueue.instance().stop();
+                            ExportQueue.instance().stop();
+                            progressTimer.stop();
                             Export.stopIOMonitor();
                             LoginFrame lf = new LoginFrame();
                             lf.setLocationRelativeTo(Main.frameInstance);
@@ -397,20 +408,20 @@ public final class Frame extends javax.swing.JFrame {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     int x = Util.requestPassword();
-                    
+
                     if (x == Util.PASSWORD_ACCEPTED) {
                         var dialog = new NewPasswordDialog(Main.frameInstance);
                         String newPass = dialog.getPassword();
-                        
+
                         if (newPass == null) {
                             return;
                         }
-                        
+
                         user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
                         Main.saveUsers();
-                        JOptionPane.showMessageDialog(Main.frameInstance, 
-                                "Your password has been successfully updated!", 
-                                "info", 
+                        JOptionPane.showMessageDialog(Main.frameInstance,
+                                "Your password has been successfully updated!",
+                                "info",
                                 JOptionPane.INFORMATION_MESSAGE);
                     } else if (x == Util.PASSWORD_DENIED) {
                         JOptionPane.showMessageDialog(Main.frameInstance, Constants.ACCESS_DENIED_TEXT, "info", JOptionPane.INFORMATION_MESSAGE);
@@ -422,7 +433,7 @@ public final class Frame extends javax.swing.JFrame {
             search.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
-                    String input = JOptionPane.showInputDialog(Main.frameInstance, 
+                    String input = JOptionPane.showInputDialog(Main.frameInstance,
                             "Your search keywords (separated by ','):");
                     if (input == null || input.isBlank()) {
                         return;
@@ -466,10 +477,10 @@ public final class Frame extends javax.swing.JFrame {
     }//GEN-LAST:event_jPanel1MouseReleased
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-        if (!Export.exportTasks.isEmpty() || !Export.importTasks.isEmpty() || ImportQueue.instance().isImporting()) {
-            JOptionPane.showMessageDialog(this, 
+        if (!Export.exportTasks.isEmpty() || !Export.importTasks.isEmpty() || ImportQueue.instance().isImporting() || ExportQueue.instance().isExporting()) {
+            JOptionPane.showMessageDialog(this,
                     "You cannot exit the program while importing or exporting files!",
-                    "info", 
+                    "info",
                     JOptionPane.INFORMATION_MESSAGE);
         } else {
             System.exit(0);
