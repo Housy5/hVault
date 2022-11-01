@@ -150,6 +150,17 @@ public class Export {
         }
     }
 
+    public static void exportAllV2(Collection<Object> objects) {
+        var chooser = createChooser();
+        var result = chooser.showSaveDialog(Main.frameInstance);
+        
+        if (result == JFileChooser.APPROVE_OPTION) {
+            Path path = chooser.getSelectedFile().toPath();
+            ExportQueue queue = ExportQueue.instance();
+            objects.forEach(obj -> queue.addTicket(new ExportTicket(obj, path)));
+        }
+    } 
+    
     public static void exportAll(Collection<FilePointer> files) {
         var chooser = createChooser();
         var result = chooser.showSaveDialog(Main.frameInstance);

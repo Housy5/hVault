@@ -89,7 +89,7 @@
                 <Property name="editable" type="boolean" value="false"/>
                 <Property name="columns" type="int" value="20"/>
                 <Property name="rows" type="int" value="5"/>
-                <Property name="text" type="java.lang.String" value="Welcome to hVault!&#xa;------------------------------------------------------------------------------------&#xa;&#xa;Quick Tips: &#xa;&#xa;-Using the right-click menu, you can access every operation.&#xa;-You can drag files from your desktop to the vault.&#xa;-It&apos;s easy to organize your vault by creating folders.&#xa;-Simply left-click on files to open them. &#xa;&#xa;Have fun! :) &#xa;&#xa;"/>
+                <Property name="text" type="java.lang.String" value="Welcome to hVault!&#xa;------------------------------------------------------------------------------------&#xa;&#xa;Quick Tips: &#xa;&#xa;-Using the right-click menu, you can access every operation!&#xa;-You can drag files from your desktop to the vault!&#xa;-It&apos;s easy to organize your vault by creating folders!&#xa;-Simply left-click on files to open them!&#xa;-Hold alt to select multiple items! &#xa;&#xa;Have fun! :) &#xa;&#xa;"/>
               </Properties>
             </Component>
           </SubComponents>

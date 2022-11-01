@@ -1,7 +1,6 @@
 package vault;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 import vault.nfsys.FilePointer;
 import vault.nfsys.Folder;
 

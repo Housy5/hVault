@@ -13,13 +13,13 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -45,9 +45,8 @@ import vault.format.FormatDetector;
 
 public class Tile extends JPanel {
 
-    private final Color fontColor = new Color(0x657c8c);
-
     private static ImageIcon defaultFileIcon = null;
+    private static final long serialVersionUID = 1L;
     private static final int toolTipWidth = 200;
     private static ImageIcon videoFileIcon = null;
     private static ImageIcon audioFileIcon = null;
@@ -77,21 +76,32 @@ public class Tile extends JPanel {
 
         public TileContextMenu() {
 
-            if (type == FileType.FILE) {
-
-                var open = new JMenuItem("Open");
-                open.addMouseListener(new MouseAdapter() {
-                    @Override
-                    public void mouseReleased(MouseEvent e) {
-                        if (SwingUtilities.isLeftMouseButton(e)) {
-                            openFile(file);
+            var exportSelection = new JMenuItem("Export the Selected Items");
+            exportSelection.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    var tiles = frameInstance.getSelectedTiles();
+                    List<Object> objs = new ArrayList<>();
+                    tiles.forEach(tile -> {
+                        if (tile.isFile()) {
+                            objs.add(tile.file);
+                        } else if (tile.isFolder()) {
+                            objs.add(tile.folder);
                         }
-                    }
-                });
-                if (Desktop.isDesktopSupported()) {
-                    add(open);
+                    });
+                    Export.exportAllV2(objs);
                 }
-            }
+            });
+
+            var open = new JMenuItem("Open");
+            open.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    if (SwingUtilities.isLeftMouseButton(e)) {
+                        openFile(file);
+                    }
+                }
+            });
 
             var export = new JMenuItem("Export");
             export.addMouseListener(new MouseAdapter() {
@@ -265,7 +275,16 @@ public class Tile extends JPanel {
                     }
                 }
             });
+
+            if (frameInstance.getSelectionCount() > 0) {
+                add(exportSelection);
+                add(new JSeparator());
+            }
             
+            if (Desktop.isDesktopSupported() && isFile()) {
+                add(open);
+            }
+
             add(export);
             add(new JSeparator());
             add(rename);
@@ -325,6 +344,14 @@ public class Tile extends JPanel {
         Main.saveUsers();
     }
 
+    public boolean isFile() {
+        return type == FileType.FILE;
+    }
+
+    public boolean isFolder() {
+        return type == FileType.FOLDER;
+    }
+
     private void renameFolder() {
         var newName = "";
         var current = frameInstance.user.fsys.getCurrentFolder();
@@ -352,19 +379,20 @@ public class Tile extends JPanel {
     /**
      * Sequence to add a folder.
      */
-    static void addFolder(JComponent parent) {
-        String folname = JOptionPane.showInputDialog(parent, "Name of the folder: ");
+    public static void addFolder() {
+        String folname = JOptionPane.showInputDialog(frameInstance, "Name of the folder: ");
         if (folname == null) {
-            return;
+            folname = "Untitled Folder";
         }
 
         var user = frameInstance.user;
         if (user.fsys.getCurrentFolder().containsFolderName(folname)) {
-            JOptionPane.showMessageDialog(Main.frameInstance,
-                    "This folder already exists!",
-                    "info",
-                    JOptionPane.INFORMATION_MESSAGE);
-            return;
+            folname = NameUtilities.nextFolderName(folname, user.fsys.getCurrentFolder());
+
+            if (folname == null) {
+                JOptionPane.showMessageDialog(frameInstance, "Failed to create a new folder!");
+                return;
+            }
         }
 
         Folder current = frameInstance.user.fsys.getCurrentFolder();
@@ -559,20 +587,47 @@ public class Tile extends JPanel {
         init();
     }
 
+    public void toggleSelected() {
+        selected = !selected;
+        manageBackground();
+    }
+
+    public void resetBackground() {
+        setBackground(BACKGROUND_COLOR);
+    }
+
+    private void manageTracking() {
+        if (selected) {
+            frameInstance.track(this);
+        } else {
+            frameInstance.untrack(this);
+        }
+    }
+
+    private void manageBackground() {
+        if (!selected) {
+            resetBackground();
+        }
+    }
+
     private void init() {
         BACKGROUND_COLOR = Main.frameInstance.getBackground();
-        setBackground(BACKGROUND_COLOR);
+        resetBackground();
 
         addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown()) {
-
+                    if ((isFolder() && !"..".equals(name)) || isFile()) {
+                        toggleSelected();
+                        manageTracking();
+                    }
                 } else if (SwingUtilities.isLeftMouseButton(e)) {
                     var now = System.currentTimeMillis();
                     if (now - lastClicked <= DOUBLE_CLICK_TIME
                             || type == FileType.ADD) {
+                        frameInstance.resetSelections();
                         switch (type) {
                             case FOLDER -> {
                                 if (folder.isLocked()) {
@@ -611,10 +666,9 @@ public class Tile extends JPanel {
                             }
                         }
                     }
-
                     lastClicked = now;
                 } else if (SwingUtilities.isRightMouseButton(e) && type != FileType.ADD) {
-                    if (type == FileType.FOLDER && name.equals("..")) {
+                    if (isFolder() && name.equals("..")) {
                         return;
                     }
                     var menu = new TileContextMenu();

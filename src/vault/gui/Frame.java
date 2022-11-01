@@ -10,8 +10,6 @@ import java.awt.dnd.DragSource;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,24 +19,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JPopupMenu;
-import javax.swing.JSeparator;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
 import vault.Export;
 import vault.Main;
-import vault.Clipper;
-import vault.Constants;
 import vault.FileTransferHandler;
 import vault.queue.ImportQueue;
 import vault.queue.ImportTicket;
-import vault.Util;
+import vault.gui.menu.DefaultMenu;
+import vault.gui.selections.SelectionTracker;
 import vault.nfsys.Folder;
 import vault.nfsys.FilePointer;
-import vault.nfsys.FolderBuilder;
 import vault.queue.ExportQueue;
 import vault.user.User;
 
@@ -46,6 +39,8 @@ public final class Frame extends javax.swing.JFrame {
 
     public User user;
     private Timer progressTimer;
+    
+    private SelectionTracker selectionTracker;
 
     private final int maxTitleLength = 50;
 
@@ -53,20 +48,41 @@ public final class Frame extends javax.swing.JFrame {
         initComponents();
         this.user = user;
         setLocationRelativeTo(null);
-
+        
+        selectionTracker = new SelectionTracker();
         setTitle(user.username + "'s  Vault!");
 
         user.fsys.indexFileIDs();
         user.fsys.validateFiles();
         Main.saveUsers();
         user.fsys.cd(user.fsys.getRoot());
-        
+
         addDropTarget();
-        
+
         initTimer();
         initIcon();
     }
 
+    public void resetSelections() {
+        selectionTracker.resetSelections();
+    }
+
+    public void track(Tile tile) {
+        selectionTracker.track(tile);
+    }
+    
+    public void untrack(Tile tile) {
+        selectionTracker.untrack(tile);
+    }
+    
+    public long getSelectionCount() {
+        return selectionTracker.getSelectionCount();
+    }
+
+    public List<Tile> getSelectedTiles() {
+        return selectionTracker.getSelectedTiles();
+    }
+    
     private void addDropTarget() {
         jPanel1.setDropTarget(new DropTarget() {
             @Override
@@ -148,7 +164,7 @@ public final class Frame extends javax.swing.JFrame {
             var parentTile = new Tile("..", folder.getParent());
             jPanel1.add(parentTile);
         }
-        
+
         folder.getFolders().forEach(fol -> jPanel1.add(new Tile(fol)));
 
         for (var hFile : folder.getFiles()) {
@@ -236,7 +252,7 @@ public final class Frame extends javax.swing.JFrame {
     /**
      * Don't ask questions
      */
-    private void addFile() {
+    public void addFile() {
         var chooser = new JFileChooser();
         chooser.showOpenDialog(jPanel1);
 
@@ -248,231 +264,18 @@ public final class Frame extends javax.swing.JFrame {
         }
     }
 
+    public void stopProgressTimer() {
+        progressTimer.stop();
+    }
+
     private void jPanel1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseReleased
-        if (evt == null) {
-            return;
-        }
         if (SwingUtilities.isRightMouseButton(evt)) {
-
-            if (user.fsys.getCurrentFolder().isSearchFolder()) {
-                return;
+            if (!user.fsys.getCurrentFolder().isSearchFolder()) {
+                var menu = new DefaultMenu(this, user);
+                menu.show(jPanel1, evt.getX(), evt.getY());
             }
-
-            var menu = new JPopupMenu();
-
-            var refresh = new JMenuItem("Refresh");
-            refresh.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    loadFolder(user.fsys.getCurrentFolder());
-                }
-            });
-
-            var exportAll = new JMenuItem("Export All Files");
-            exportAll.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        int x = Util.requestPassword();
-
-                        if (x == Util.PASSWORD_ACCEPTED) {
-                            Export.exportAll(user.fsys.getCurrentFolder().getFiles());
-                        } else if (x == Util.PASSWORD_DENIED) {
-                            JOptionPane.showMessageDialog(Main.frameInstance,
-                                    Constants.ACCESS_DENIED_TEXT,
-                                    "info",
-                                    JOptionPane.INFORMATION_MESSAGE);
-                        }
-                    }
-                }
-            });
-
-            var deleteAll = new JMenuItem("Delete All Files");
-            deleteAll.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        int x = JOptionPane.showConfirmDialog(Main.frameInstance,
-                                "(Cannot be undone) Are you sure you want to delete every file in this folder?");
-
-                        if (x == JOptionPane.YES_OPTION) {
-                            user.fsys.getCurrentFolder().removeAllFiles();
-                            loadFolder(user.fsys.getCurrentFolder());
-                            Main.saveUsers();
-                        }
-                    }
-                }
-            });
-
-            var addFolder = new JMenuItem("New Folder");
-            addFolder.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        Tile.addFolder(jPanel1);
-                    }
-                }
-            });
-
-            var addItem = new JMenuItem("New File");
-            addItem.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        addFile();
-                    }
-                }
-            });
-
-            var paste = new JMenuItem("Paste");
-            paste.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        Clipper.paste();
-                    }
-                }
-            });
-
-            var logout = new JMenuItem("Log Out");
-            logout.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-
-                        if (!Export.exportTasks.isEmpty()
-                                || !Export.importTasks.isEmpty()
-                                || ImportQueue.instance().isImporting()
-                                || ExportQueue.instance().isExporting()) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "When exporting or importing files, you can't log out!",
-                                    "info",
-                                    JOptionPane.INFORMATION_MESSAGE);
-                            return;
-                        }
-
-                        int x = JOptionPane.showConfirmDialog(Main.frameInstance, "Would you like to log out?");
-
-                        if (x == JOptionPane.YES_OPTION) {
-                            ImportQueue.instance().stop();
-                            ExportQueue.instance().stop();
-                            progressTimer.stop();
-                            Export.stopIOMonitor();
-                            LoginFrame lf = new LoginFrame();
-                            lf.setLocationRelativeTo(Main.frameInstance);
-                            lf.setVisible(true);
-                            Main.frameInstance.dispose();
-                            Main.frameInstance = null;
-                            return;
-                        }
-
-                        loadFolder(user.fsys.getCurrentFolder());
-                        Main.saveUsers();
-                    }
-                }
-            });
-
-            var enableWelcomeMsg = new JMenuItem("Enable Welcome Message");
-            enableWelcomeMsg.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e == null) {
-                        return;
-                    }
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        user.showWelcomeMsg = true;
-                        Main.saveUsers();
-                    }
-                }
-            });
-
-            var changePassword = new JMenuItem("Change Password");
-            changePassword.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    int x = Util.requestPassword();
-
-                    if (x == Util.PASSWORD_ACCEPTED) {
-                        var dialog = new NewPasswordDialog(Main.frameInstance);
-                        String newPass = dialog.getPassword();
-
-                        if (newPass == null) {
-                            return;
-                        }
-
-                        user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
-                        Main.saveUsers();
-                        JOptionPane.showMessageDialog(Main.frameInstance,
-                                "Your password has been successfully updated!",
-                                "info",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    } else if (x == Util.PASSWORD_DENIED) {
-                        JOptionPane.showMessageDialog(Main.frameInstance, Constants.ACCESS_DENIED_TEXT, "info", JOptionPane.INFORMATION_MESSAGE);
-                    }
-                }
-            });
-
-            var search = new JMenuItem("Search");
-            search.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    String input = JOptionPane.showInputDialog(Main.frameInstance,
-                            "Your search keywords (separated by ','):");
-                    if (input == null || input.isBlank()) {
-                        return;
-                    }
-                    String[] keyWords = input.split(",");
-                    if (keyWords != null && keyWords.length > 0) {
-                        List<FilePointer> pointers = user.fsys.search(keyWords);
-                        if (pointers.isEmpty()) {
-                            JOptionPane.showMessageDialog(Main.frameInstance, "There were no results for your search.", "info", JOptionPane.INFORMATION_MESSAGE);
-                            return;
-                        }
-                        Folder searchFolder = FolderBuilder.createSearchFolder(user.fsys.getCurrentFolder(), pointers);
-                        loadFolder(searchFolder);
-                    }
-                }
-            });
-
-            if (user.fsys.getCurrentFolder().getFileCount() > 1) {
-                menu.add(exportAll);
-                menu.add(deleteAll);
-                menu.add(new JSeparator());
-            }
-
-            menu.add(addFolder);
-            menu.add(addItem);
-            menu.add(new JSeparator());
-            menu.add(search);
-            menu.add(new JSeparator());
-            menu.add(paste);
-            menu.add(new JSeparator());
-            menu.add(logout);
-            menu.add(changePassword);
-
-            if (!user.showWelcomeMsg) {
-                menu.add(new JSeparator());
-                menu.add(enableWelcomeMsg);
-            }
-
-            menu.show(jPanel1, evt.getX(), evt.getY());
+        } else if (SwingUtilities.isLeftMouseButton(evt)) {
+            resetSelections();
         }
     }//GEN-LAST:event_jPanel1MouseReleased
 
@@ -492,4 +295,5 @@ public final class Frame extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     // End of variables declaration//GEN-END:variables
+    private static final long serialVersionUID = 1L;
 }
