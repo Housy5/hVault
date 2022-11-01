@@ -280,7 +280,7 @@ public class Tile extends JPanel {
                 add(exportSelection);
                 add(new JSeparator());
             }
-            
+
             if (Desktop.isDesktopSupported() && isFile()) {
                 add(open);
             }
@@ -406,19 +406,12 @@ public class Tile extends JPanel {
         FILE, FOLDER, ADD;
 
         ImageIcon getIcon() {
-            switch (this) {
-                case FILE -> {
-                    return defaultFileIcon;
-                }
-                case FOLDER -> {
-                    return folderIcon;
-                }
-                case ADD -> {
-                    return addIcon;
-                }
-
-            }
-            return null;
+            return switch (this) {
+                case FILE -> defaultFileIcon;
+                case FOLDER -> folderIcon;
+                case ADD -> addIcon;
+                default -> null;
+            };
         }
     }
 
@@ -430,27 +423,21 @@ public class Tile extends JPanel {
         if (defaultFileIcon == null) {
             defaultFileIcon = getIcon("/res/file-free-icon-font_1.png");
         }
-
         if (audioFileIcon == null) {
             audioFileIcon = getIcon("/res/music-file-free-icon-font (1).png");
         }
-
         if (videoFileIcon == null) {
             videoFileIcon = getIcon("/res/file-video-free-icon-font.png");
         }
-
         if (documentFileIcon == null) {
             documentFileIcon = getIcon("/res/file-invoice-free-icon-font.png");
         }
-
         if (imageFileIcon == null) {
             imageFileIcon = getIcon("/res/picture-free-icon-font.png");
         }
-
         if (folderIcon == null) {
             folderIcon = getIcon("/res/folder-free-icon-font_1.png");
         }
-
         if (addIcon == null) {
             addIcon = getIcon("/res/add (1).png");
         }
@@ -460,7 +447,7 @@ public class Tile extends JPanel {
         try {
             return new ImageIcon(ImageIO.read(getClass().getResource(path)));
         } catch (IOException ex) {
-            Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, "", ex);
             JOptionPane.showMessageDialog(this,
                     ex.getMessage(),
                     "error",
@@ -610,12 +597,56 @@ public class Tile extends JPanel {
         }
     }
 
+    private boolean isDoubleClick() {
+        return System.currentTimeMillis() - lastClicked <= DOUBLE_CLICK_TIME;
+    }
+
+    private void doubleClickFile() {
+        if (Desktop.isDesktopSupported()) {
+            openFile(file);
+        } else {
+            int x = Util.requestPassword();
+
+            if (x == Util.PASSWORD_ACCEPTED) {
+                Export.exportFile(file);
+            } else if (x == Util.PASSWORD_DENIED) {
+                JOptionPane.showMessageDialog(instance,
+                        Constants.ACCESS_DENIED_TEXT,
+                        "info",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+    }
+
+    private void doubleClickFolder() {
+        if (folder.isLocked()) {
+            int x = Util.requestPassword();
+
+            if (x == Util.PASSWORD_ACCEPTED) {
+                frameInstance.loadFolder(folder);
+            } else if (x == Util.PASSWORD_DENIED) {
+                JOptionPane.showMessageDialog(instance,
+                        Constants.ACCESS_DENIED_TEXT,
+                        "info",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            frameInstance.loadFolder(folder);
+        }
+    }
+
+    private void rightClickTile(MouseEvent e) {
+        if ((isFolder() && !name.equals("..")) || isFile()) {
+            var menu = new TileContextMenu();
+            menu.show(instance, e.getX(), e.getY());
+        }
+    }
+
     private void init() {
         BACKGROUND_COLOR = Main.frameInstance.getBackground();
         resetBackground();
 
         addMouseListener(new MouseAdapter() {
-
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown()) {
@@ -625,54 +656,18 @@ public class Tile extends JPanel {
                     }
                 } else if (SwingUtilities.isLeftMouseButton(e)) {
                     var now = System.currentTimeMillis();
-                    if (now - lastClicked <= DOUBLE_CLICK_TIME
-                            || type == FileType.ADD) {
+                    if (isDoubleClick()) {
                         frameInstance.resetSelections();
                         switch (type) {
-                            case FOLDER -> {
-                                if (folder.isLocked()) {
-                                    int x = Util.requestPassword();
-
-                                    if (x == Util.PASSWORD_ACCEPTED) {
-                                        frameInstance.loadFolder(folder);
-                                    } else if (x == Util.PASSWORD_DENIED) {
-                                        JOptionPane.showMessageDialog(instance,
-                                                Constants.ACCESS_DENIED_TEXT,
-                                                "info",
-                                                JOptionPane.INFORMATION_MESSAGE);
-                                    }
-
-                                } else {
-                                    frameInstance.loadFolder(folder);
-                                }
-                            }
-                            case FILE -> {
-                                if (Desktop.isDesktopSupported()) {
-                                    openFile(file);
-                                } else {
-                                    int x = Util.requestPassword();
-
-                                    if (x == Util.PASSWORD_ACCEPTED) {
-                                        Export.exportFile(file);
-                                    } else if (x == Util.PASSWORD_DENIED) {
-                                        JOptionPane.showMessageDialog(instance,
-                                                Constants.ACCESS_DENIED_TEXT,
-                                                "info",
-                                                JOptionPane.INFORMATION_MESSAGE);
-                                    }
-                                }
-                            }
+                            case FOLDER -> doubleClickFolder();
+                            case FILE -> doubleClickFile();
                             case ADD -> {
                             }
                         }
                     }
                     lastClicked = now;
-                } else if (SwingUtilities.isRightMouseButton(e) && type != FileType.ADD) {
-                    if (isFolder() && name.equals("..")) {
-                        return;
-                    }
-                    var menu = new TileContextMenu();
-                    menu.show(instance, e.getX(), e.getY());
+                } else if (SwingUtilities.isRightMouseButton(e)) {
+                    rightClickTile(e);
                 }
             }
 

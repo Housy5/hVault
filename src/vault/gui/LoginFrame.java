@@ -1,5 +1,6 @@
 package vault.gui;
 
+import java.awt.EventQueue;
 import java.awt.event.KeyEvent;
 import static java.awt.event.KeyEvent.VK_ENTER;
 import java.awt.geom.AffineTransform;
@@ -19,6 +20,9 @@ import vault.user.User;
 public class LoginFrame extends javax.swing.JFrame {
 
     public BufferedImage currentIcon;
+    private long lastPress;
+    
+    private final long MINIMUM_WAIT_TIME = 1000;
 
     public LoginFrame() {
         initComponents();
@@ -199,7 +203,7 @@ public class LoginFrame extends javax.swing.JFrame {
     private void signUp() {
         var sf = new SignUpFrame();
         sf.setLocationRelativeTo(this);
-        sf.setVisible(true);
+        EventQueue.invokeLater(() -> sf.setVisible(true));
 
         dispose();
     }
@@ -294,8 +298,9 @@ public class LoginFrame extends javax.swing.JFrame {
     public void switchToMain(User user) {
         Frame frame = new Frame(user);
         frame.setLocationRelativeTo(this);
-        frame.setVisible(true);
+        EventQueue.invokeLater(() -> frame.setVisible(true));
         Main.frameInstance = frame;
+        frame.initTimer();
         Export.startIOMonitor(frame);
         frame.loadFolder(user.fsys.getRoot());
         dispose();
@@ -312,14 +317,20 @@ public class LoginFrame extends javax.swing.JFrame {
     }
 
     private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased
-        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             jPasswordField1.requestFocus();
+            lastPress = now;
         }
     }//GEN-LAST:event_jTextField1KeyReleased
 
     private void jPasswordField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jPasswordField1KeyReleased
-        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             login();
+            lastPress = now;
         }
     }//GEN-LAST:event_jPasswordField1KeyReleased
 
@@ -336,26 +347,38 @@ public class LoginFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_formWindowClosing
 
     private void jButton2KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton2KeyReleased
-        if (evt.getKeyCode() == VK_ENTER) {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyCode() == VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             login();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton2KeyReleased
 
     private void jButton1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton1KeyReleased
-        if (evt.getKeyCode() == VK_ENTER) {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyCode() == VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton1KeyReleased
 
     private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
+        long now = System.currentTimeMillis();
+        
+        if (SwingUtilities.isLeftMouseButton(evt) && now - lastPress > MINIMUM_WAIT_TIME) {
             login();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton2MouseReleased
 
     private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
+        long now = System.currentTimeMillis();
+        
+        if (SwingUtilities.isLeftMouseButton(evt) && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton1MouseReleased
 

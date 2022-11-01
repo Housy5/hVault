@@ -4,6 +4,7 @@
  */
 package vault.gui.menu;
 
+import java.awt.EventQueue;
 import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
@@ -165,7 +166,7 @@ public class DefaultMenu extends EmptyMenu {
                         Export.stopIOMonitor();
                         LoginFrame lf = new LoginFrame();
                         lf.setLocationRelativeTo(Main.frameInstance);
-                        lf.setVisible(true);
+                        EventQueue.invokeLater(() -> lf.setVisible(true));
                         Main.frameInstance.dispose();
                         Main.frameInstance = null;
                         return;

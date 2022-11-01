@@ -1,5 +1,6 @@
 package vault.gui;
 
+import java.awt.EventQueue;
 import static java.awt.event.KeyEvent.VK_ENTER;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -20,6 +21,8 @@ import vault.user.User;
 public class SignUpFrame extends javax.swing.JFrame {
 
     public BufferedImage currentIcon;
+    private long lastPress;
+    private final long MINIMUM_WAIT_TIME = 1000;
 
     /**
      * Creates new form SignUpFrame
@@ -265,8 +268,9 @@ public class SignUpFrame extends javax.swing.JFrame {
     private void switchToMain(User user) {
         Frame frame = new Frame(user);
         frame.setLocationRelativeTo(this);
-        frame.setVisible(true);
+        EventQueue.invokeLater(() -> frame.setVisible(true));
         Main.frameInstance = frame;
+        frame.initTimer();
         Export.startIOMonitor(frame);
         frame.loadFolder(user.fsys.getRoot());
         dispose();
@@ -352,32 +356,47 @@ public class SignUpFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_jPasswordField1KeyPressed
 
     private void jPasswordField2KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jPasswordField2KeyPressed
-        if (evt.getKeyChar() == '\n') {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyChar() == '\n' && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
+            lastPress = now;
         }
     }//GEN-LAST:event_jPasswordField2KeyPressed
 
     private void jButton1KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton1KeyPressed
-        if (evt.getKeyCode() == VK_ENTER) {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyCode() == VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton1KeyPressed
 
     private void jButton2KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton2KeyPressed
-        if (evt.getKeyCode() == VK_ENTER) {
+        long now = System.currentTimeMillis();
+        
+        if (evt.getKeyCode() == VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             back();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton2KeyPressed
 
     private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
+        long now = System.currentTimeMillis();
+        
+        if (SwingUtilities.isLeftMouseButton(evt) && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton1MouseReleased
 
     private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
+        long now = System.currentTimeMillis();
+        
+        if (SwingUtilities.isLeftMouseButton(evt) && now - lastPress > MINIMUM_WAIT_TIME) {
             back();
+            lastPress = now;
         }
     }//GEN-LAST:event_jButton2MouseReleased
 

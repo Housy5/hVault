@@ -1,6 +1,7 @@
 package vault;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import java.awt.EventQueue;
 import java.awt.Image;
 import java.io.File;
 import java.io.FileInputStream;
@@ -70,7 +71,7 @@ public class Main {
         if (SessionLedger.attemptStart()) {
             Garbage.start();
             var lf = new LoginFrame();
-            lf.setVisible(true);
+            EventQueue.invokeLater(() -> lf.setVisible(true));
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
                 public void run() {

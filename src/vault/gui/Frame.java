@@ -58,8 +58,6 @@ public final class Frame extends javax.swing.JFrame {
         user.fsys.cd(user.fsys.getRoot());
 
         addDropTarget();
-
-        initTimer();
         initIcon();
     }
 
@@ -103,7 +101,7 @@ public final class Frame extends javax.swing.JFrame {
         });
     }
 
-    private void initTimer() {
+    public void initTimer() {
         progressTimer = new Timer(500, (ActionEvent e) -> {
             updateProgressLabel();
         });
