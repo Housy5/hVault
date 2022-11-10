@@ -5,12 +5,15 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Image;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,9 +41,11 @@ import vault.nfsys.FileSystem;
 import static vault.Main.frameInstance;
 import vault.nfsys.FolderBuilder;
 import vault.FileTransferHandler;
+import static vault.Main.thumbnails;
 import vault.NameUtilities;
 import vault.TransferData;
 import vault.Util;
+import vault.encrypt.Encryptor;
 import vault.format.FormatDetector;
 
 public class Tile extends JPanel {
@@ -477,6 +482,15 @@ public class Tile extends JPanel {
         return 0;
     }
 
+    private Icon getThumbNail() {
+        var thumbnails = Main.getThumbNails();
+        if (thumbnails.containsKey(file)) {
+            return thumbnails.get(file);
+        } else {
+            return imageFileIcon;
+        }
+    }
+    
     private Icon parseIcon() {
         FormatDetector detector = FormatDetector.instance();
         int x = detector.detectFormat(file.getName());
@@ -491,7 +505,7 @@ public class Tile extends JPanel {
             case FormatDetector.OTHER ->
                 defaultFileIcon;
             case FormatDetector.IMAGE ->
-                imageFileIcon;
+                getThumbNail();
             default ->
                 defaultFileIcon;
         };
@@ -630,6 +644,7 @@ public class Tile extends JPanel {
             int x = Util.requestPassword();
 
             if (x == Util.PASSWORD_ACCEPTED) {
+                frameInstance.getFolderCursor().push(folder);
                 frameInstance.loadFolder(folder);
             } else if (x == Util.PASSWORD_DENIED) {
                 JOptionPane.showMessageDialog(instance,
@@ -638,6 +653,7 @@ public class Tile extends JPanel {
                         JOptionPane.INFORMATION_MESSAGE);
             }
         } else {
+            frameInstance.getFolderCursor().push(folder);
             frameInstance.loadFolder(folder);
         }
     }
@@ -736,7 +752,7 @@ public class Tile extends JPanel {
                         Main.saveUsers();
                     } else {
                         List<File> droppedObject = (List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-                        frameInstance.addFile(droppedObject, folder);
+                        frameInstance.addFiles(droppedObject, folder);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

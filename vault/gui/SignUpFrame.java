@@ -322,12 +322,6 @@ public class SignUpFrame extends javax.swing.JFrame {
             Main.users.put(username, user);
 
             Main.saveUsers();
-
-            JOptionPane.showMessageDialog(this, 
-                    "A new account was successfully created.",
-                    "info",
-                    JOptionPane.INFORMATION_MESSAGE);
-
             rotateWheel(user);
 
         } catch (NoSuchAlgorithmException ex) {

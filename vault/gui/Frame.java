@@ -1,6 +1,7 @@
 package vault.gui;
 
 import java.awt.Cursor;
+import java.awt.Image;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -10,6 +11,7 @@ import java.awt.dnd.DragSource;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,14 +20,20 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
+import vault.Constants;
 import vault.Export;
 import vault.Main;
 import vault.FileTransferHandler;
+import vault.FolderCursor;
+import vault.NameUtilities;
+import vault.encrypt.Encryptor;
+import vault.format.FormatDetector;
 import vault.queue.ImportQueue;
 import vault.queue.ImportTicket;
 import vault.gui.menu.DefaultMenu;
@@ -39,8 +47,9 @@ public final class Frame extends javax.swing.JFrame {
 
     public User user;
     private Timer progressTimer;
-    
-    private SelectionTracker selectionTracker;
+
+    private final SelectionTracker selectionTracker;
+    private final FolderCursor folderCursor = new FolderCursor();
 
     private final int maxTitleLength = 50;
 
@@ -48,7 +57,7 @@ public final class Frame extends javax.swing.JFrame {
         initComponents();
         this.user = user;
         setLocationRelativeTo(null);
-        
+
         selectionTracker = new SelectionTracker();
         setTitle(user.username + "'s  Vault!");
 
@@ -56,6 +65,8 @@ public final class Frame extends javax.swing.JFrame {
         user.fsys.validateFiles();
         Main.saveUsers();
         user.fsys.cd(user.fsys.getRoot());
+
+        folderCursor.push(user.fsys.getCurrentFolder());
 
         addDropTarget();
         initIcon();
@@ -68,11 +79,11 @@ public final class Frame extends javax.swing.JFrame {
     public void track(Tile tile) {
         selectionTracker.track(tile);
     }
-    
+
     public void untrack(Tile tile) {
         selectionTracker.untrack(tile);
     }
-    
+
     public long getSelectionCount() {
         return selectionTracker.getSelectionCount();
     }
@@ -80,7 +91,11 @@ public final class Frame extends javax.swing.JFrame {
     public List<Tile> getSelectedTiles() {
         return selectionTracker.getSelectedTiles();
     }
-    
+
+    public FolderCursor getFolderCursor() {
+        return folderCursor;
+    }
+
     private void addDropTarget() {
         jPanel1.setDropTarget(new DropTarget() {
             @Override
@@ -92,10 +107,12 @@ public final class Frame extends javax.swing.JFrame {
                         return;
                     }
                     List<File> droppedFiles = (List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-                    addFile(droppedFiles, folder);
+                    addFiles(droppedFiles, folder);
                 } catch (UnsupportedFlavorException | IOException ex) {
                     Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
                     JOptionPane.showMessageDialog(Main.frameInstance, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+                } catch (ClassCastException e) {
+                    Logger.getLogger(Frame.class.getName()).log(Level.WARNING, "Failed when trying to cast the transfer data to List<fILE>.", e);
                 }
             }
         });
@@ -130,9 +147,9 @@ public final class Frame extends javax.swing.JFrame {
     }
 
     private String createTitleMessage(String fullname) {
-        String result = fullname;
-        if (fullname.length() > maxTitleLength) {
-            result = "..." + fullname.substring(fullname.length() - (maxTitleLength + 1), fullname.length() - 1);
+        String result = NameUtilities.reformatFullFolderName(fullname);
+        if (fullname.length() > Constants.MAX_URL_LENGTH) {
+            result = NameUtilities.shortenFullFolderName(fullname);
         }
         return result;
     }
@@ -143,6 +160,37 @@ public final class Frame extends javax.swing.JFrame {
         jLabel1.setText(state);
     }
 
+    private void scanThumbNails() {
+        Thread t = new Thread(() -> {
+            var map = Main.thumbnails;
+            var files = user.fsys.getCurrentFolder().getFiles();
+            var missing = files.stream()
+                    .filter(x -> FormatDetector.instance().detectFormat(x.getName()) == FormatDetector.IMAGE)
+                    .filter(x -> !map.containsKey(x)).toList();
+            
+            if (!missing.isEmpty()) {
+                missing.forEach(x -> map.putIfAbsent(x, loadThumbNail(x)));
+                Main.saveThumbNails();
+                Main.reload();
+            }
+        });
+
+        t.start();
+    }
+    
+    private ImageIcon loadThumbNail(FilePointer pointer) {
+        try {
+            var bytes = Encryptor.decode(pointer.getBytes());
+            var bytesInput = new ByteArrayInputStream(bytes);
+
+            var img = ImageIO.read(bytesInput).getScaledInstance(64, 64, Image.SCALE_SMOOTH);
+            return new ImageIcon(img);
+        } catch (IOException | NullPointerException ex) {
+            Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, "Something went wrong trying to create a thumbnail.", ex);
+            return null;
+        }
+    }
+
     /**
      * Loads the specified folder to the screen.
      *
@@ -151,18 +199,17 @@ public final class Frame extends javax.swing.JFrame {
     public void loadFolder(Folder folder) {
         user.fsys.cd(folder);
         DragSource dragSource = new DragSource();
-        String titleMsg = createTitleMessage(folder.getFullName());
+        String titleMsg = createTitleMessage(NameUtilities.reformatFullFolderName(folder.getFullName()));
         ((TitledBorder) jPanel1.getBorder()).setTitle(titleMsg);
 
         Arrays.stream(jPanel1.getComponents())
                 .filter(component -> component instanceof Tile)
                 .forEach(component -> jPanel1.remove(component));
-
-        if (folder.getParent() != null) {
-            var parentTile = new Tile("..", folder.getParent());
-            jPanel1.add(parentTile);
-        }
-
+        
+        /*
+         * if (folder.getParent() != null) { var parentTile = new Tile("..", folder.getParent()); jPanel1.add(parentTile);
+         * }
+         */
         folder.getFolders().forEach(fol -> jPanel1.add(new Tile(fol)));
 
         for (var hFile : folder.getFiles()) {
@@ -179,6 +226,8 @@ public final class Frame extends javax.swing.JFrame {
 
         jPanel1.revalidate();
         jPanel1.repaint();
+        
+        scanThumbNails();
     }
 
     private Transferable createTransferable(FilePointer pointer) {
@@ -203,6 +252,9 @@ public final class Frame extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
+        jPanel3 = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Vault");
@@ -212,7 +264,7 @@ public final class Frame extends javax.swing.JFrame {
             }
         });
 
-        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(new javax.swing.border.LineBorder(new java.awt.Color(164, 149, 128), 1, true), "Folder Name", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("SansSerif", 0, 14))); // NOI18N
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(new javax.swing.border.LineBorder(new java.awt.Color(164, 149, 128), 1, true), "Folder Name", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("SansSerif", 1, 14))); // NOI18N
         jPanel1.setName(""); // NOI18N
         jPanel1.setPreferredSize(new java.awt.Dimension(800, 600));
         jPanel1.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -233,6 +285,30 @@ public final class Frame extends javax.swing.JFrame {
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.SOUTH);
 
+        jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
+
+        jButton1.setText("\u276e");
+        jButton1.setFocusPainted(false);
+        jButton1.setFocusTraversalPolicyProvider(true);
+        jButton1.setSelected(true);
+        jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                jButton1MouseReleased(evt);
+            }
+        });
+        jPanel3.add(jButton1);
+
+        jButton2.setText("\u276f");
+        jButton2.setFocusPainted(false);
+        jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                jButton2MouseReleased(evt);
+            }
+        });
+        jPanel3.add(jButton2);
+
+        getContentPane().add(jPanel3, java.awt.BorderLayout.NORTH);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
@@ -242,7 +318,7 @@ public final class Frame extends javax.swing.JFrame {
      * @param f The file to be imported
      * @param folder The destination folder
      */
-    public void addFile(List<File> f, Folder folder) {
+    public void addFiles(List<File> f, Folder folder) {
         ImportQueue queue = ImportQueue.instance();
         f.forEach(x -> queue.addTicket(new ImportTicket(x, folder)));
     }
@@ -258,7 +334,7 @@ public final class Frame extends javax.swing.JFrame {
         var folder = user.fsys.getCurrentFolder();
 
         if (file != null) {
-            addFile(List.of(file), folder);
+            addFiles(List.of(file), folder);
         }
     }
 
@@ -288,10 +364,25 @@ public final class Frame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_formWindowClosing
 
+    private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
+        if (SwingUtilities.isLeftMouseButton(evt)) {
+            loadFolder(folderCursor.prev());
+        }
+    }//GEN-LAST:event_jButton1MouseReleased
+
+    private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
+        if (SwingUtilities.isLeftMouseButton(evt)) {
+            loadFolder(folderCursor.next());
+        }
+    }//GEN-LAST:event_jButton2MouseReleased
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     // End of variables declaration//GEN-END:variables
     private static final long serialVersionUID = 1L;
 }

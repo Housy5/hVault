@@ -155,5 +155,7 @@ public class FilePointer implements Serializable {
         usedIds.remove(id);
     }
     
+    private static final long serialVersionUID = 1L;
+    
     private static List<UUID> usedIds;
 }

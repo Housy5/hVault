@@ -3,6 +3,7 @@ package vault;
 import com.formdev.flatlaf.FlatDarkLaf;
 import java.awt.EventQueue;
 import java.awt.Image;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -11,15 +12,20 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import vault.gui.Frame;
 import vault.gui.LoginFrame;
+import vault.nfsys.FilePointer;
 
 import vault.user.User;
 
@@ -29,6 +35,7 @@ public class Main {
     public static Image icon = null;
     public static Main instance;
     public static Map<String, User> users;
+    public static Map<FilePointer, ImageIcon> thumbnails;
 
     static {
         try {
@@ -39,8 +46,13 @@ public class Main {
         }
 
         loadUsers();
+        loadThumbNails();
     }
 
+    public static Map<FilePointer, ImageIcon> getThumbNails() {
+        return thumbnails;
+    }
+    
     public static void reload() {
         frameInstance.loadFolder(frameInstance.user.fsys.getCurrentFolder());
     }
@@ -137,7 +149,18 @@ public class Main {
         }
     }
 
+    public static void saveThumbNails() {
+        File f = Constants.THUMBNAIL_FILE;
+        try (var out = new ObjectOutputStream(new FileOutputStream(f))) {
+            out.writeObject(thumbnails);
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Failed while trying to save the thumbnails", ex);
+        }
+    }
+    
     /**
+     * 
+     * 
      * Checks to see if the salt is already used for an other user.
      *
      * @param salt The generated salt.
@@ -164,6 +187,24 @@ public class Main {
             }
         } else {
             users = new HashMap<>();
+        }
+    }
+    
+    public static void loadThumbNails() {
+        File f = Constants.THUMBNAIL_FILE;
+        
+        if (f.exists()) {
+            try (var in = new ObjectInputStream(new FileInputStream(f))) {
+                thumbnails = (HashMap<FilePointer, ImageIcon>) in.readObject();
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            thumbnails = new HashMap<>();
         }
     }
 

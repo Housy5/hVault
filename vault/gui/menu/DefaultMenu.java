@@ -165,7 +165,7 @@ public class DefaultMenu extends EmptyMenu {
                             || !Export.importTasks.isEmpty()
                             || ImportQueue.instance().isImporting()
                             || ExportQueue.instance().isExporting()) {
-                        JOptionPane.showMessageDialog(Main.frameInstance, "When exporting or importing files, you can't log out!",
+                        JOptionPane.showMessageDialog(Main.frameInstance, "You can't log out while importing or exporting files!",
                                 "info",
                                 JOptionPane.INFORMATION_MESSAGE);
                         return;

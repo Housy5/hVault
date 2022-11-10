@@ -115,7 +115,7 @@ public class Folder implements Serializable {
 
     protected void removeContent() {
         for (FilePointer file : files) {
-            removeFile(file);
+            removeFileContent(file);
         }
         for (Folder fol : folders) {
             fol.removeContent();
@@ -184,7 +184,7 @@ public class Folder implements Serializable {
         removeFilePointer(pointer, true);
     }
 
-    public void removeFile(FilePointer file) {
+    public void removeFileContent(FilePointer file) {
         if (file != null && files.contains(file)) {
             var value = file.getValue();
 
@@ -194,14 +194,9 @@ public class Folder implements Serializable {
         }
     }
 
-    public void removeItems(List<Object> objs) {
-        List<FilePointer> files = new ArrayList<>();
-        List<Folder> folders = new ArrayList<>();
-    }
-    
     public void removeAllFiles() {
         for (FilePointer pointer : files) {
-            removeFile(pointer);
+            removeFileContent(pointer);
         }
         files.clear();
     }

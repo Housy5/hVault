@@ -304,7 +304,7 @@ public class LoginFrame extends javax.swing.JFrame {
         Export.startIOMonitor(frame);
         frame.loadFolder(user.fsys.getRoot());
         dispose();
-
+        
         if (user.showStartUpMsg) {
             var startUpMsg = new StartUpMessage(this, true);
             startUpMsg.setVisible(true);

@@ -9,6 +9,44 @@ import vault.nfsys.Folder;
 
 public class NameUtilities {
 
+    public static final String reformatFullFolderName(String fullname) {
+        var sb = new StringBuilder();
+        var sep = Constants.URL_SEPARATOR;
+        var separated = fullname.split(":");
+        for (int i = 0; i < separated.length; i++) {
+            if (i == 0) {
+                sb.append(separated[i]);
+            } else {
+                sb.append(sep).append(separated[i]);
+            }
+        }
+        return sb.toString();
+    }
+    
+    public static final String shortenFullFolderName(String fullname) {
+        var sep = Constants.URL_SEPARATOR;
+        var arr = fullname.split(sep);
+        var result = fullname;
+        int exclude = 0;
+        
+        while (result.length() > Constants.MAX_URL_LENGTH) {
+            StringBuilder sb = new StringBuilder();
+            for(int i = 0; i < arr.length; i++) {
+                if (i > exclude) {
+                    sb.append(sep).append(arr[i]);
+                }
+            }
+            
+            if (sb.isEmpty()) {
+                sb.append(sep).append(arr[arr.length - 1]);
+            } 
+            
+            result = "..." + sb.toString();
+            exclude++;
+        }
+        return result;
+    }
+    
     public static final String nextFileName(final String original, final Folder dir) {
         String newName = null;
         int count = 1;

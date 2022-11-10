@@ -106,7 +106,7 @@ public class FileSystem implements Serializable {
      * @param parent the specified folder
      */
     public void removeFile(FilePointer file) {
-        file.getParent().removeFile(file);
+        file.getParent().removeFileContent(file);
         file.getParent().removeFilePointer(file);
     }
 
