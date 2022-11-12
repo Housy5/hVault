@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import vault.NameUtilities;
 
-public class Folder implements Serializable {
+public class Folder extends FileSystemItem implements Serializable {
 
     private String name;
     private String fullName;
@@ -34,7 +34,7 @@ public class Folder implements Serializable {
         }
         return false;
     }
-    
+
     public boolean containsFileNameExcluded(String newName, FilePointer exclude) {
         for (FilePointer pointer : files) {
             if (pointer.getName().equalsIgnoreCase(newName) && pointer != exclude) {
@@ -80,6 +80,13 @@ public class Folder implements Serializable {
         }
     }
 
+    @Override
+    public long getSize() {
+        long sum = files.stream().mapToLong(FilePointer::getSize).sum();
+        sum += folders.stream().mapToLong(Folder::getSize).sum();
+        return sum;
+    }
+    
     public int getFileCount() {
         return files.size();
     }
@@ -108,7 +115,7 @@ public class Folder implements Serializable {
             }
             folder.setName(newName);
         }
-        
+
         folders.add(folder);
         sortFolders();
     }
@@ -245,14 +252,6 @@ public class Folder implements Serializable {
         this.locked = locked;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public Collection<Folder> getFolders() {
         return Collections.unmodifiableCollection(folders);
     }
@@ -267,14 +266,6 @@ public class Folder implements Serializable {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
-    }
-
-    public Folder getParent() {
-        return parent;
-    }
-
-    public void setParent(Folder parent) {
-        this.parent = parent;
     }
 
     public void remap(Folder parent) {
@@ -303,20 +294,16 @@ public class Folder implements Serializable {
         List<FilePointer> filesCopy = new ArrayList<>();
         Folder folder = new Folder();
 
-        if (folders.isEmpty()) {
-            for (Folder fol : folders) {
-                Folder f = fol.copy();
-                f.setParent(folder);
-                foldersCopy.add(f);
-            }
+        for (Folder fol : folders) {
+            Folder f = fol.copy();
+            f.setParent(folder);
+            foldersCopy.add(f);
         }
 
-        if (files.isEmpty()) {
-            for (FilePointer file : files) {
-                FilePointer copy = file.copy();
-                copy.setParent(folder);
-                filesCopy.add(copy);
-            }
+        for (FilePointer file : files) {
+            FilePointer copy = file.copy();
+            copy.setParent(folder);
+            filesCopy.add(copy);
         }
 
         folder.setName(new String(name));

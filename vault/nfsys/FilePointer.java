@@ -14,15 +14,13 @@ import java.util.logging.Logger;
 import javax.crypto.SealedObject;
 import vault.encrypt.Encryptor;
 
-public class FilePointer implements Serializable {
+public class FilePointer extends FileSystemItem implements Serializable {
 
     private UUID id;
 
     private String location;
-    private String name;
-    private Folder parent;
 
-    private int size;
+    private long size;
 
     public FilePointer() {
         if (usedIds == null) {
@@ -56,13 +54,9 @@ public class FilePointer implements Serializable {
         }
         
         if (obj instanceof FilePointer pointer) {
-            if (pointer.getID().equals(id) 
+            return pointer.getID().equals(id) 
                     && pointer.getSize() == size
-                    && pointer.getLocation().equals(location)) {
-                return true;
-            } else {
-                return false;
-            }
+                    && pointer.getLocation().equals(location);
         } else {
             return false;
         }
@@ -81,15 +75,8 @@ public class FilePointer implements Serializable {
         return location;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Folder getParent() {
-        return parent;
-    }
-
-    public int getSize() {
+    @Override
+    public long getSize() {
         return size;
     }
 
@@ -101,21 +88,13 @@ public class FilePointer implements Serializable {
     public int hashCode() {
         int hash = 3;
         hash = 79 * hash + Objects.hashCode(this.location);
-        hash = 79 * hash + this.size;
+        hash = 79 * hash + (int) this.size;
         hash = 79 * hash + Objects.hashCode(this.id);
         return hash;
     }
 
     public void setLocation(String location) {
         this.location = location;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setParent(Folder parent) {
-        this.parent = parent;
     }
 
     private HFile load() {
@@ -139,7 +118,7 @@ public class FilePointer implements Serializable {
         }
     }
 
-    public void setSize(int size) {
+    public void setSize(long size) {
         this.size = size;
     }
 

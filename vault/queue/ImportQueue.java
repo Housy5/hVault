@@ -5,7 +5,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -29,12 +32,16 @@ public class ImportQueue implements Runnable {
     private final long sleepTime = 1000;
     private final Queue<ImportTicket> tickets;
     private final List<File> importedFiles;
+    private final List<FilePointer> importedPointers;
+    private final List<Folder> importedFolders;
     private final FileSystem fsys;
 
     private ImportQueue() {
         tickets = new LinkedList<>();
         fsys = Main.frameInstance.user.fsys;
-        importedFiles = new LinkedList<>();
+        importedFiles = new ArrayList<>();
+        importedPointers = new ArrayList<>();
+        importedFolders = new ArrayList<>();
     }
 
     private void handleDirectory(ImportTicket ticket) {
@@ -42,11 +49,13 @@ public class ImportQueue implements Runnable {
         File file = ticket.getFile();
 
         Folder folder = FolderBuilder.createFolder(file.getName(), parent);
+        folder.setCreationDate(LocalDateTime.now());
         parent.addFolder(folder);
         File[] files = file.listFiles();
         if (files != null) {
             Arrays.stream(files).forEach(x -> tickets.add(new ImportTicket(x, folder)));
         }
+        importedFolders.add(folder);
     }
     
     private byte[] readAllBytes(File file) {
@@ -64,7 +73,6 @@ public class ImportQueue implements Runnable {
             path.mkdirs();
         }
     }
-
 
     private boolean exportSaveFile(HFile hFile, FilePointer fp) {
         validateSavePath();
@@ -93,8 +101,9 @@ public class ImportQueue implements Runnable {
             FilePointer fp = new FilePointer();
             fp.setName(fpName);
             fp.setLocation(String.format("%s/%s", Constants.FILES_PATH.getAbsolutePath(), randomName));
-            fp.setSize((int) file.length());
+            fp.setSize(file.length());
             fp.setParent(parent);
+            fp.setCreationDate(LocalDateTime.now());
             
             byte[] bytes = Encryptor.encrypt(readAllBytes(file));
             if (bytes.length == 0) {
@@ -109,6 +118,7 @@ public class ImportQueue implements Runnable {
             parent.addFile(fp);
             
             importedFiles.add(file);
+            importedPointers.add(fp);
         }
     }
 
@@ -121,8 +131,20 @@ public class ImportQueue implements Runnable {
         
         if (option == JOptionPane.YES_OPTION) {
             importedFiles.forEach(file -> file.delete());
+        } else if (option == JOptionPane.CANCEL_OPTION) {
+            importedPointers.forEach(x -> fsys.removeFile(x));
+            Collections.reverse(importedFolders);
+            importedFolders.forEach(x -> fsys.removeFolder(x));
+            Main.saveUsers();
+            Main.reload();
         }
         
+        if (option == JOptionPane.YES_OPTION || option == JOptionPane.NO_OPTION) {
+            Main.frameInstance.finishImport();
+        }
+        
+        importedPointers.clear();
+        importedFolders.clear();
         importedFiles.clear();
     }
     

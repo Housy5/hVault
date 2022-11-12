@@ -3,7 +3,6 @@ package vault;
 import com.formdev.flatlaf.FlatDarkLaf;
 import java.awt.EventQueue;
 import java.awt.Image;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
@@ -26,6 +24,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 import vault.gui.Frame;
 import vault.gui.LoginFrame;
 import vault.nfsys.FilePointer;
+import vault.nfsys.Folder;
 
 import vault.user.User;
 
@@ -47,6 +46,7 @@ public class Main {
 
         loadUsers();
         loadThumbNails();
+        scanThumbNails();
     }
 
     public static Map<FilePointer, ImageIcon> getThumbNails() {
@@ -79,7 +79,23 @@ public class Main {
         return sb.toString();
     }
 
+    private static void testWheel() {
+        IndexWheel<String> wheel = new IndexWheel<>();
+        wheel.add("Olivier");
+        wheel.add("Laurent");
+        wheel.add("Jessica");
+        wheel.add("Housy");
+        
+        System.out.println(wheel.toString());
+        
+        for (int i = 0; i < wheel.size(); i++) {
+            wheel.rotateRight();
+            System.out.println(wheel.toString());
+        }
+    }
+    
     public static void main(String[] args) throws IOException {
+        testWheel();
         if (SessionLedger.attemptStart()) {
             Garbage.start();
             var lf = new LoginFrame();
@@ -188,6 +204,35 @@ public class Main {
         } else {
             users = new HashMap<>();
         }
+    }
+    
+    private static List<FilePointer> getFilesFromFolder(Folder folder) {
+        List<FilePointer> files = new ArrayList<>();
+        files.addAll(folder.getFiles());
+        for (var f : folder.getFolders()) {
+            files.addAll(getFilesFromFolder(f));
+        }
+        return files;
+    }
+    
+    public static List<FilePointer> getAllFiles() {
+        List<FilePointer> files = new ArrayList<>();
+        for (var user : users.values()) {
+            files.addAll(getFilesFromFolder(user.fsys.getRoot()));
+        }
+        return files;
+    }
+    
+    public static void scanThumbNails() {
+        List<FilePointer> files = getAllFiles();
+        List<FilePointer> removal = new ArrayList<>();
+        for (var pointer : thumbnails.keySet()) {
+            if (!files.contains(pointer)) {
+                removal.add(pointer);
+            }
+        }
+        removal.forEach(x -> thumbnails.remove(x));
+        Main.saveThumbNails();
     }
     
     public static void loadThumbNails() {

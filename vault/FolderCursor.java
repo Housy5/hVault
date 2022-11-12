@@ -1,11 +1,17 @@
 package vault;
 
+import vault.nfsys.FileSystem;
 import vault.nfsys.Folder;
 
 public class FolderCursor {
     
     private int size = 0, cursor = 0;
     private Node head, last;
+    private final FileSystem fsys;
+
+    public FolderCursor(FileSystem pFsys) {
+        fsys = pFsys;
+    }
     
     private class Node {
         Folder value;
@@ -31,8 +37,53 @@ public class FolderCursor {
         return current;
     }
     
+    private Node createDefaultNode() {
+        Node node = new Node(fsys.getCurrentFolder());
+        return node;
+    }
+    
+    private Node getNodeFor(Folder folder) {
+        Node current = head;
+        while (!current.value.equals(folder) && current.next != null) {
+            current = current.next;
+        } 
+        
+        return current.value.equals(folder) ? current : createDefaultNode();
+    }
+    
     private Node getCurrentNode() {
         return getNode(cursor - 1);
+    }
+    
+    private void chopByFolder(Folder folder) {
+        Node node = getNodeFor(folder);
+        chopByNode(node);
+    }
+    
+    private void chopByNode(Node node) {
+        if (node == null) {
+            //do nothing
+        } else if (node == head) {
+            head = null;
+            last = null;
+            size = cursor = 0;
+        } else {
+            Node prev = node.prev;
+            prev.next = null;
+            node.prev = null;
+            last = prev;
+            size = cursor;
+        } 
+    }
+    
+    public void chop(Object obj) {
+        if (obj instanceof Folder folder) {
+            chopByFolder(folder);
+        } else if (obj instanceof Node node) {
+            chopByNode(node);
+        } else {
+            throw new IllegalArgumentException();
+        }
     }
     
     public void push(Folder folder) {
@@ -67,12 +118,19 @@ public class FolderCursor {
     }
     
     public Folder next() {
-        cursor++;
         if (cursor >= size) {
             cursor = size;
             return last.value;
         } else {
-            return getCurrentNode().value;
+            Node current = getCurrentNode();
+            if (current.next != null && !isValidFolder(current.next.value)) {
+                chop(current.next);
+                cursor++;
+                return current.value;
+            } else {
+                cursor++;
+                return current.next.value != null ? current.next.value : createDefaultNode().value;
+            }
         }
     }
     
@@ -80,9 +138,13 @@ public class FolderCursor {
         cursor--;
          if (cursor <= 1) {
              cursor = 1;
-             return head.value;
+             return fsys.getRoot();
          } else {
-             return getCurrentNode().value;
+             return fsys.getCurrentFolder().getParent();
          }
+    }
+
+    private boolean isValidFolder(Folder folder) {
+        return fsys.getCurrentFolder().containsFolder(folder);
     }
 }

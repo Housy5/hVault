@@ -1,5 +1,6 @@
 package vault.gui;
 
+import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Image;
 import java.awt.datatransfer.DataFlavor;
@@ -32,6 +33,8 @@ import vault.Main;
 import vault.FileTransferHandler;
 import vault.FolderCursor;
 import vault.NameUtilities;
+import vault.Sorter;
+import vault.Util;
 import vault.encrypt.Encryptor;
 import vault.format.FormatDetector;
 import vault.queue.ImportQueue;
@@ -49,7 +52,10 @@ public final class Frame extends javax.swing.JFrame {
     private Timer progressTimer;
 
     private final SelectionTracker selectionTracker;
-    private final FolderCursor folderCursor = new FolderCursor();
+    private final Sorter sorter;
+    private final FolderCursor folderCursor;
+    
+    private long finishImportTime = 0L;
 
     private final int maxTitleLength = 50;
 
@@ -65,8 +71,11 @@ public final class Frame extends javax.swing.JFrame {
         user.fsys.validateFiles();
         Main.saveUsers();
         user.fsys.cd(user.fsys.getRoot());
-
+        
+        folderCursor = new FolderCursor(user.fsys);
         folderCursor.push(user.fsys.getCurrentFolder());
+        
+        sorter = new Sorter(user.fsys);
 
         addDropTarget();
         initIcon();
@@ -133,15 +142,25 @@ public final class Frame extends javax.swing.JFrame {
         }
     }
 
+    public void finishImport() {
+        finishImportTime = System.currentTimeMillis();
+    }
+    
     private void updateProgressLabel() {
         ImportQueue importQueue = ImportQueue.instance();
         ExportQueue exportQueue = ExportQueue.instance();
 
         if (importQueue.isImporting()) {
+            jLabel1.setForeground(Color.WHITE);
             jLabel1.setText(String.format("Importing: %d files left.", importQueue.count()));
         } else if (exportQueue.isExporting()) {
+            jLabel1.setForeground(Color.WHITE);
             jLabel1.setText(String.format("Exporting: %d files left.", exportQueue.count()));
+        } else if (System.currentTimeMillis() - finishImportTime < 3000) {
+            jLabel1.setForeground(new Color(0x87a96b));
+            jLabel1.setText("Success!");
         } else {
+            jLabel1.setForeground(Color.WHITE);
             jLabel1.setText(IDLE_STATE);
         }
     }
@@ -166,7 +185,8 @@ public final class Frame extends javax.swing.JFrame {
             var files = user.fsys.getCurrentFolder().getFiles();
             var missing = files.stream()
                     .filter(x -> FormatDetector.instance().detectFormat(x.getName()) == FormatDetector.IMAGE)
-                    .filter(x -> !map.containsKey(x)).toList();
+                    .filter(x -> !map.containsKey(x))
+                    .toList();
             
             if (!missing.isEmpty()) {
                 missing.forEach(x -> map.putIfAbsent(x, loadThumbNail(x)));
@@ -197,6 +217,14 @@ public final class Frame extends javax.swing.JFrame {
      * @param folder
      */
     public void loadFolder(Folder folder) {
+        if (folder.isLocked()) {
+            int result = Util.requestPassword();
+            
+            if (result == Util.PASSWORD_DENIED || result == Util.CANCEL) {
+                return;
+            }
+        }
+        
         user.fsys.cd(folder);
         DragSource dragSource = new DragSource();
         String titleMsg = createTitleMessage(NameUtilities.reformatFullFolderName(folder.getFullName()));
