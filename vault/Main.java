@@ -92,6 +92,11 @@ public class Main {
             wheel.rotateRight();
             System.out.println(wheel.toString());
         }
+        
+        wheel.alignWith("Olivier", 3);
+        System.out.println(wheel.toString());
+        
+        System.out.println(wheel.valueAt(3));
     }
     
     public static void main(String[] args) throws IOException {

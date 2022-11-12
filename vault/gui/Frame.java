@@ -283,6 +283,11 @@ public final class Frame extends javax.swing.JFrame {
         jPanel3 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
+        jSeparator1 = new javax.swing.JSeparator();
+        jButton3 = new javax.swing.JButton();
+        jButton4 = new javax.swing.JButton();
+        jButton5 = new javax.swing.JButton();
+        jButton6 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Vault");
@@ -334,6 +339,21 @@ public final class Frame extends javax.swing.JFrame {
             }
         });
         jPanel3.add(jButton2);
+
+        jSeparator1.setOrientation(javax.swing.SwingConstants.VERTICAL);
+        jPanel3.add(jSeparator1);
+
+        jButton3.setText("A-Z");
+        jPanel3.add(jButton3);
+
+        jButton4.setText("Size");
+        jPanel3.add(jButton4);
+
+        jButton5.setText("Newest");
+        jPanel3.add(jButton5);
+
+        jButton6.setText("Images First");
+        jPanel3.add(jButton6);
 
         getContentPane().add(jPanel3, java.awt.BorderLayout.NORTH);
 
@@ -392,25 +412,30 @@ public final class Frame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_formWindowClosing
 
-    private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
-            loadFolder(folderCursor.prev());
-        }
-    }//GEN-LAST:event_jButton1MouseReleased
-
     private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
         if (SwingUtilities.isLeftMouseButton(evt)) {
             loadFolder(folderCursor.next());
         }
     }//GEN-LAST:event_jButton2MouseReleased
 
+    private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
+        if (SwingUtilities.isLeftMouseButton(evt)) {
+            loadFolder(folderCursor.prev());
+        }
+    }//GEN-LAST:event_jButton1MouseReleased
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
+    private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JSeparator jSeparator1;
     // End of variables declaration//GEN-END:variables
     private static final long serialVersionUID = 1L;
 }

@@ -1,5 +1,8 @@
 package vault;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class IndexWheel<T> {
     
@@ -31,11 +34,26 @@ public class IndexWheel<T> {
     private IndexNode idxTail;
     
     private int size = 0;
+    private Map<T ,Integer> indexMap;
+    
+    public IndexWheel() {
+        indexMap = new HashMap<>();
+    }
+    
+    public void clear() {
+        head = null;
+        tail = null;
+        idxHead = null;
+        idxTail = null;
+        size = 0;
+        indexMap.clear();
+    }
     
     public void add(T t) {
         ValueNode valNode = new ValueNode(t);
         IndexNode idxNode = new IndexNode(size);
         valNode.currentIndex = idxNode;
+        indexMap.put(t, idxNode.value);
         
         if (size == 0) {
            idxHead = idxNode;
@@ -62,11 +80,36 @@ public class IndexWheel<T> {
         return size;
     }
     
+    public void alignWith(T t, int index) {
+        int idx = indexFor(t);
+        
+        if (index < 0 || index > size) {
+            throw new IndexOutOfBoundsException();
+        }
+        
+        if (idx == -1) {
+            throw new NoSuchElementException();
+        } else if (idx < index) {
+            int distance = index - idx;
+            
+            for (int i = 0; i < distance; i++) {
+                rotateRight();
+            }
+        } else if (idx > index) {
+            int distance = idx - index;
+            
+            for (int i = 0; i < distance; i++) {
+                rotateLeft();
+            }
+        }
+    }
+    
     public void rotateLeft() {
         ValueNode curr = head;
         
         while (curr != null) {
             curr.currentIndex = curr.currentIndex.prev;
+            indexMap.put(curr.value, curr.currentIndex.value);
             curr = curr.next;
         }
     }
@@ -76,13 +119,26 @@ public class IndexWheel<T> {
         
         while (curr != null) {
             curr.currentIndex = curr.currentIndex.next;
+            indexMap.put(curr.value, curr.currentIndex.value);
             curr = curr.next;
         }
     }
     
     public int indexFor(T val) {
-        ValueNode node = nodeFor(val);
-        return node == null ? null : node.currentIndex.value;
+        return indexMap.getOrDefault(val, -1);
+    }
+    
+    public T valueAt(int index) {
+        if (index < 0 || index > size) {
+            throw new IndexOutOfBoundsException();
+        }
+        
+        ValueNode curr = head;
+        while (curr.currentIndex.value != index) {
+            curr = curr.next;
+        }
+        
+        return curr.value;
     }
     
     private ValueNode nodeFor(T val) {
@@ -97,7 +153,6 @@ public class IndexWheel<T> {
         
         return result;
     }
-    
     
     @Override
     public String toString() {
