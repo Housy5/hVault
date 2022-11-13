@@ -128,8 +128,9 @@ public final class Frame extends javax.swing.JFrame {
     }
 
     public void initTimer() {
-        progressTimer = new Timer(500, (ActionEvent e) -> {
+        progressTimer = new Timer(250, (ActionEvent e) -> {
             updateProgressLabel();
+            updateSortButtons();
         });
         progressTimer.start();
     }
@@ -144,6 +145,39 @@ public final class Frame extends javax.swing.JFrame {
 
     public void finishImport() {
         finishImportTime = System.currentTimeMillis();
+    }
+    
+    private void resetSortButtons() {
+        azbtn.setText("A-Z");
+        sizebtn.setText("Size");
+        timebtn.setText("Newest");
+        typebtn.setText("Images");
+    }
+    
+    private void updateSortButtons() {
+        resetSortButtons();
+        switch (sorter.getType()) {
+            case AZ ->
+                azbtn.setText("Z-A");
+            case ZA -> 
+                azbtn.setText("A-Z");
+            case BIGGEST ->
+                sizebtn.setText("Size");
+            case SMALLEST ->
+                sizebtn.setText("Size");
+            case NEWEST ->
+                timebtn.setText("Oldest");
+            case OLDEST ->
+                timebtn.setText("Newest");
+            case IMAGES_FIRST ->
+                typebtn.setText("Videos");
+            case VIDEOS_FIRST ->
+                typebtn.setText("Audio");
+            case AUDIO_FIRST ->
+                typebtn.setText("Documents");
+            case DOCUMENTS_FIRST ->
+                typebtn.setText("Images");
+        }
     }
     
     private void updateProgressLabel() {
@@ -218,9 +252,9 @@ public final class Frame extends javax.swing.JFrame {
      */
     public void loadFolder(Folder folder) {
         if (folder.isLocked()) {
-            int result = Util.requestPassword();
-            
+            int result = Util.requestFolderPassword(folder);
             if (result == Util.PASSWORD_DENIED || result == Util.CANCEL) {
+                JOptionPane.showMessageDialog(this, Constants.ACCESS_DENIED_TEXT);
                 return;
             }
         }
@@ -234,22 +268,22 @@ public final class Frame extends javax.swing.JFrame {
                 .filter(component -> component instanceof Tile)
                 .forEach(component -> jPanel1.remove(component));
         
-        /*
-         * if (folder.getParent() != null) { var parentTile = new Tile("..", folder.getParent()); jPanel1.add(parentTile);
-         * }
-         */
-        folder.getFolders().forEach(fol -> jPanel1.add(new Tile(fol)));
-
-        for (var hFile : folder.getFiles()) {
-            var tile = new Tile(hFile);
-            jPanel1.add(tile);
-            dragSource.createDefaultDragGestureRecognizer(tile, DnDConstants.ACTION_MOVE, (DragGestureEvent e) -> {
-                var cursor = Cursor.getDefaultCursor();
-                if (e.getDragAction() == DnDConstants.ACTION_MOVE) {
-                    cursor = DragSource.DefaultMoveDrop;
-                }
-                e.startDrag(cursor, createTransferable(hFile));
-            });
+        var items = sorter.sort(folder.getAllItems());
+        
+        for (var item : items) {
+            if (item instanceof Folder fol) {
+                jPanel1.add(new Tile(fol));
+            } else if (item instanceof FilePointer pointer) {
+                var tile = new Tile(pointer);
+                jPanel1.add(tile);
+                dragSource.createDefaultDragGestureRecognizer(tile, DnDConstants.ACTION_MOVE, (DragGestureEvent e) -> {
+                    var cursor = Cursor.getDefaultCursor();
+                    if (e.getDragAction() == DnDConstants.ACTION_MOVE) {
+                        cursor = DragSource.DefaultMoveDrop;
+                    }
+                    e.startDrag(cursor, createTransferable(pointer));
+                });
+            }
         }
 
         jPanel1.revalidate();
@@ -283,11 +317,13 @@ public final class Frame extends javax.swing.JFrame {
         jPanel3 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
+        filler1 = new javax.swing.Box.Filler(new java.awt.Dimension(10, 0), new java.awt.Dimension(5, 0), new java.awt.Dimension(10, 32767));
         jSeparator1 = new javax.swing.JSeparator();
-        jButton3 = new javax.swing.JButton();
-        jButton4 = new javax.swing.JButton();
-        jButton5 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
+        azbtn = new javax.swing.JButton();
+        sizebtn = new javax.swing.JButton();
+        timebtn = new javax.swing.JButton();
+        typebtn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Vault");
@@ -318,6 +354,7 @@ public final class Frame extends javax.swing.JFrame {
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.SOUTH);
 
+        jPanel3.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createEmptyBorder(1, 3, 1, 3), new javax.swing.border.LineBorder(new java.awt.Color(128, 143, 164), 1, true)));
         jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
 
         jButton1.setText("\u276e");
@@ -339,21 +376,53 @@ public final class Frame extends javax.swing.JFrame {
             }
         });
         jPanel3.add(jButton2);
+        jPanel3.add(filler1);
 
+        jSeparator1.setForeground(new Color(0x808FA4));
         jSeparator1.setOrientation(javax.swing.SwingConstants.VERTICAL);
+        jSeparator1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jSeparator1.setPreferredSize(new java.awt.Dimension(10, 20));
         jPanel3.add(jSeparator1);
 
-        jButton3.setText("A-Z");
-        jPanel3.add(jButton3);
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel2.setText("Sort by:");
+        jPanel3.add(jLabel2);
 
-        jButton4.setText("Size");
-        jPanel3.add(jButton4);
+        azbtn.setText("A-Z");
+        azbtn.setFocusPainted(false);
+        azbtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                azbtnActionPerformed(evt);
+            }
+        });
+        jPanel3.add(azbtn);
 
-        jButton5.setText("Newest");
-        jPanel3.add(jButton5);
+        sizebtn.setText("Size");
+        sizebtn.setFocusPainted(false);
+        sizebtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                sizebtnActionPerformed(evt);
+            }
+        });
+        jPanel3.add(sizebtn);
 
-        jButton6.setText("Images First");
-        jPanel3.add(jButton6);
+        timebtn.setText("Newest");
+        timebtn.setFocusPainted(false);
+        timebtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                timebtnActionPerformed(evt);
+            }
+        });
+        jPanel3.add(timebtn);
+
+        typebtn.setText("Images");
+        typebtn.setFocusPainted(false);
+        typebtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                typebtnActionPerformed(evt);
+            }
+        });
+        jPanel3.add(typebtn);
 
         getContentPane().add(jPanel3, java.awt.BorderLayout.NORTH);
 
@@ -424,18 +493,72 @@ public final class Frame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jButton1MouseReleased
 
+    private void azbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_azbtnActionPerformed
+        var type = sorter.getType();
+        
+        if (type == Sorter.Type.AZ) {
+            sorter.setType(Sorter.Type.ZA);
+        } else {
+            sorter.setType(Sorter.Type.AZ);
+        }
+        
+        Main.reload();
+    }//GEN-LAST:event_azbtnActionPerformed
+
+    private void sizebtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sizebtnActionPerformed
+        var type = sorter.getType();
+        
+        if (type == Sorter.Type.BIGGEST) {
+            sorter.setType(Sorter.Type.SMALLEST);
+        } else {
+            sorter.setType(Sorter.Type.BIGGEST);
+        }
+        
+        Main.reload();
+    }//GEN-LAST:event_sizebtnActionPerformed
+
+    private void timebtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_timebtnActionPerformed
+        var type = sorter.getType();
+        
+        if (type == Sorter.Type.NEWEST) {
+            sorter.setType(Sorter.Type.OLDEST);
+        } else {
+            sorter.setType(Sorter.Type.NEWEST);
+        }
+        
+        Main.reload();
+    }//GEN-LAST:event_timebtnActionPerformed
+
+    private void typebtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_typebtnActionPerformed
+        var type = sorter.getType();
+        
+        if (type == Sorter.Type.IMAGES_FIRST) {
+            sorter.setType(Sorter.Type.VIDEOS_FIRST);
+        } else if (type == Sorter.Type.VIDEOS_FIRST) {
+            sorter.setType(Sorter.Type.AUDIO_FIRST);
+        } else if (type == Sorter.Type.AUDIO_FIRST) {
+            sorter.setType(Sorter.Type.DOCUMENTS_FIRST);
+        } else {
+            sorter.setType(Sorter.Type.IMAGES_FIRST);
+        }
+        
+        Main.reload();
+    }//GEN-LAST:event_typebtnActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton azbtn;
+    private javax.swing.Box.Filler filler1;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JButton sizebtn;
+    private javax.swing.JButton timebtn;
+    private javax.swing.JButton typebtn;
     // End of variables declaration//GEN-END:variables
     private static final long serialVersionUID = 1L;
 }

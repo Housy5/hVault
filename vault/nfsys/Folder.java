@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import vault.NameUtilities;
+import vault.password.Password;
 
 public class Folder extends FileSystemItem implements Serializable {
 
@@ -15,6 +16,7 @@ public class Folder extends FileSystemItem implements Serializable {
     private String fullName;
 
     private Folder parent;
+    private Password password;
 
     private volatile List<Folder> folders;
     private volatile List<FilePointer> files;
@@ -24,6 +26,14 @@ public class Folder extends FileSystemItem implements Serializable {
     public Folder() {
         folders = new ArrayList<>();
         files = new ArrayList<>();
+    }
+    
+    public void setPassword(Password pass) {
+        password = pass;
+    }
+    
+    public Password getPassword() {
+        return password;
     }
 
     public boolean containsFolderNameExcluded(String newName, Folder folder) {
@@ -252,6 +262,13 @@ public class Folder extends FileSystemItem implements Serializable {
         this.locked = locked;
     }
 
+    public List<Object> getAllItems() {
+        List<Object> items = new ArrayList<>();
+        folders.forEach(x -> items.add(x));
+        files.forEach(x -> items.add(x));
+        return items;
+    }
+    
     public Collection<Folder> getFolders() {
         return Collections.unmodifiableCollection(folders);
     }

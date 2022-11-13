@@ -2,6 +2,7 @@ package vault;
 
 import java.util.Arrays;
 import vault.gui.PasswordDialog;
+import vault.nfsys.Folder;
 import vault.user.User;
 
 public class Util {
@@ -21,6 +22,19 @@ public class Util {
         byte[] hash = Constants.messageDigest.digest(Main.mixPassAndSalt(password, salt).getBytes());
         
         if (Arrays.equals(hash, user.hash)) {
+            return PASSWORD_ACCEPTED;
+        } else {
+            return PASSWORD_DENIED;
+        }
+    }
+    
+    public static int requestFolderPassword(Folder folder) {
+        String password = new PasswordDialog(true).getPassword();
+        if (password == null || password.isBlank()) {
+            return CANCEL;
+        }
+        
+        if (folder.getPassword().unlock(password)) {
             return PASSWORD_ACCEPTED;
         } else {
             return PASSWORD_DENIED;

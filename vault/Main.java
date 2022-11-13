@@ -79,28 +79,7 @@ public class Main {
         return sb.toString();
     }
 
-    private static void testWheel() {
-        IndexWheel<String> wheel = new IndexWheel<>();
-        wheel.add("Olivier");
-        wheel.add("Laurent");
-        wheel.add("Jessica");
-        wheel.add("Housy");
-        
-        System.out.println(wheel.toString());
-        
-        for (int i = 0; i < wheel.size(); i++) {
-            wheel.rotateRight();
-            System.out.println(wheel.toString());
-        }
-        
-        wheel.alignWith("Olivier", 3);
-        System.out.println(wheel.toString());
-        
-        System.out.println(wheel.valueAt(3));
-    }
-    
     public static void main(String[] args) throws IOException {
-        testWheel();
         if (SessionLedger.attemptStart()) {
             Garbage.start();
             var lf = new LoginFrame();

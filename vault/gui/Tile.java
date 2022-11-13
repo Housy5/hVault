@@ -42,6 +42,7 @@ import vault.NameUtilities;
 import vault.TransferData;
 import vault.Util;
 import vault.format.FormatDetector;
+import vault.password.Password;
 
 public class Tile extends JPanel {
 
@@ -123,7 +124,7 @@ public class Tile extends JPanel {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        int x = Util.requestPassword();
+                        int x = Util.requestFolderPassword(folder);
 
                         if (x == Util.PASSWORD_ACCEPTED) {
                             if (type == FileType.FILE) {
@@ -175,7 +176,7 @@ public class Tile extends JPanel {
                                 FileSystem fsys = frameInstance.user.fsys;
 
                                 if (folder.isLocked()) {
-                                    int x = Util.requestPassword();
+                                    int x = Util.requestFolderPassword(folder);
 
                                     if (x == Util.PASSWORD_ACCEPTED) {
                                         removeFolder(fsys);
@@ -231,7 +232,7 @@ public class Tile extends JPanel {
                             Clipper.copy(file);
                         } else {
                             if (folder.isLocked()) {
-                                int x = Util.requestPassword();
+                                int x = Util.requestFolderPassword(folder);
 
                                 if (x == Util.PASSWORD_ACCEPTED) {
                                     Clipper.copy(folder);
@@ -253,6 +254,16 @@ public class Tile extends JPanel {
             setPassword.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
+                    var dialog = new NewPasswordDialog(frameInstance);
+                    var passStr = dialog.getPassword();
+                    if (passStr == null || passStr.isBlank()) {
+                        return;
+                    }
+                    
+                    System.out.println("passStr: " + passStr + ".");
+                    
+                    Password pass = new Password(passStr);
+                    folder.setPassword(pass);
                     folder.setLocked(true);
                     Main.saveUsers();
                 }
@@ -263,7 +274,7 @@ public class Tile extends JPanel {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        int x = Util.requestPassword();
+                        int x = Util.requestFolderPassword(folder);
 
                         if (x == Util.PASSWORD_ACCEPTED) {
                             folder.setLocked(false);

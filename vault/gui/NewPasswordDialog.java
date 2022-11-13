@@ -24,6 +24,7 @@ public class NewPasswordDialog extends javax.swing.JDialog {
         setLocationRelativeTo(parent);
         setModal(true);
         setVisible(true);
+        
     }
 
     /**
@@ -156,6 +157,10 @@ public class NewPasswordDialog extends javax.swing.JDialog {
         password = null;
         String pass1 = jPasswordField2.getText();
         String pass2 = jPasswordField1.getText();
+        
+        if (pass1 == null || pass2 == null) {
+            return;
+        }
         
         pass1 = pass1.trim();
         pass2 = pass2.trim();

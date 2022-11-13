@@ -1,8 +1,9 @@
 package vault.nfsys;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public abstract class FileSystemItem {
+public abstract class FileSystemItem implements Serializable {
     
     
     String name;

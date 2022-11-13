@@ -111,7 +111,7 @@ public class PasswordDialog extends javax.swing.JDialog {
     }
 
     public String getPassword() {
-        return password;
+        return password.trim();
     }
 
     public PasswordDialog setText(String text) {
