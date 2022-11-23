@@ -1,6 +1,8 @@
 package vault;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Image;
 import java.io.File;
@@ -10,19 +12,25 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ImageIcon;
-import javax.swing.JOptionPane;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import vault.gui.Frame;
 import vault.gui.LoginFrame;
+import vault.gui.MessageDialog;
+import vault.interfaces.Updatable;
 import vault.nfsys.FilePointer;
 import vault.nfsys.Folder;
 
@@ -35,12 +43,21 @@ public class Main {
     public static Main instance;
     public static Map<String, User> users;
     public static Map<FilePointer, ImageIcon> thumbnails;
-
+    public static Properties uiProperties;
+    
+    private static UIMode uimode;
+    
     static {
+        initUIMode();
+        
         try {
-            UIManager.setLookAndFeel(new FlatDarkLaf());
+            if (uimode == UIMode.DARK) {
+                UIManager.setLookAndFeel(new FlatDarkLaf());
+            } else if (uimode == UIMode.LIGHT) {
+                UIManager.setLookAndFeel(new FlatLightLaf());
+            }
         } catch (UnsupportedLookAndFeelException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(null, e.getMessage());
             e.printStackTrace();
         }
 
@@ -48,7 +65,92 @@ public class Main {
         loadThumbNails();
         scanThumbNails();
     }
+    
+    public static UIMode getUIMode() {
+       return uimode;
+    }
 
+    public static void toggleUIMode(JFrame currentFrame) {
+        uimode = switch (uimode) {
+            case DARK -> UIMode.LIGHT;
+            case LIGHT -> UIMode.DARK;
+        };
+
+        saveUIMode();
+        updateUIManager();
+        initUIProperties();
+        SwingUtilities.updateComponentTreeUI(currentFrame);
+        
+        if (currentFrame instanceof Updatable updatable) {
+            updatable.update();
+        }
+    }
+    
+    public static void updateUIManager() {
+        if (uimode == UIMode.DARK) {
+            try {
+                UIManager.setLookAndFeel(new FlatDarkLaf());
+            } catch (UnsupportedLookAndFeelException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else if (uimode == UIMode.LIGHT) {
+            try {
+                UIManager.setLookAndFeel(new FlatLightLaf());
+            } catch (UnsupportedLookAndFeelException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                MessageDialog.show(null, ex.getMessage());
+            }
+        }
+    }
+    
+    public static Properties getUIProperties() {
+        return uiProperties;
+    }
+    
+    private static void initUIMode() {
+        try {
+            uimode = loadUIMode();
+        } catch (IOException e) {
+            uimode = Constants.DEFAULT_UIMODE;
+            saveUIMode();
+        }
+        
+        initUIProperties();
+    }
+
+    private static void initUIProperties() {
+        uiProperties = new Properties();
+        switch(uimode) {
+            case DARK -> {
+                uiProperties.put("primary.color", new Color(0xA49580));
+                uiProperties.put("secondary.color", new Color(0x808fa4));
+            }
+            case LIGHT -> {
+                uiProperties.put("primary.color", Color.BLACK);
+                uiProperties.put("secondary.color", Color.BLACK);
+            }
+        }
+    }
+    
+    private static void saveUIMode() {
+        Path path = Constants.UIMODE_FILE.toPath();
+        try {
+            Files.writeString(path, uimode.toString());
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Failed to save the UI mode to a file.", ex);
+            MessageDialog.show(null, ex.getMessage());
+        }
+    }
+    
+    private static UIMode loadUIMode() throws IOException {
+        Path path = Constants.UIMODE_FILE.toPath();
+        if (Files.exists(path)) {
+            return UIMode.valueOf(Files.readString(path));
+        } else {
+            throw new IOException();
+        }
+    }
+    
     public static Map<FilePointer, ImageIcon> getThumbNails() {
         return thumbnails;
     }
@@ -142,10 +244,10 @@ public class Main {
             out.writeObject(users);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(null, ex.getMessage());
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(null, ex.getMessage());
         }
     }
 
@@ -155,6 +257,7 @@ public class Main {
             out.writeObject(thumbnails);
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Failed while trying to save the thumbnails", ex);
+            MessageDialog.show(null, ex.getMessage());
         }
     }
     
@@ -227,10 +330,10 @@ public class Main {
                 thumbnails = (HashMap<FilePointer, ImageIcon>) in.readObject();
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
+                MessageDialog.show(null, ex.getMessage());
+            } catch (IOException | ClassNotFoundException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (ClassNotFoundException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                MessageDialog.show(null, ex.getMessage());
             }
         } else {
             thumbnails = new HashMap<>();

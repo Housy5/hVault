@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
+import vault.gui.RenameDialog;
+import vault.nfsys.FileSystemItem;
 import vault.nfsys.Folder;
 
 public class NameUtilities {
@@ -117,5 +119,17 @@ public class NameUtilities {
         } while (new File(Constants.FILES_PATH.getAbsolutePath() + result).exists());
 
         return result;
+    }
+    
+    public static final void renameItem(FileSystemItem item) {
+        var dialog = new RenameDialog(Main.frameInstance, true, item);
+        int opt = dialog.showDialog();
+        
+        if (opt == RenameDialog.RENAME_OPTION) {
+            item.setName(dialog.getNewName());
+        }
+        
+        Main.reload();
+        Main.saveUsers();
     }
 }

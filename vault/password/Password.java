@@ -21,7 +21,6 @@ public class Password implements Serializable {
     
     public boolean unlock(String str) {
         String strHash = hash(str);
-        System.out.println("Original String: " + str + ".\nOriginal Hash: " + hash + ".\nOther Hash: " + strHash + ".");
         return strHash.equals(hash);
     }
 }

@@ -28,6 +28,7 @@ public class WelcomeScreen {
             return new ImageIcon(ImageIO.read(getClass().getResource(path)));
         } catch (IOException ex) {
             Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, null, ex);
+            MessageDialog.show(frame, ex.getMessage());
             return null;
         }
     }

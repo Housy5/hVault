@@ -1,13 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package vault.format;
 
-/**
- *
- * @author olivi
- */
+import java.util.HashMap;
+import java.util.Map;
+
 public class FormatDetector {
     
     public static final int AUDIO = 0;
@@ -18,15 +13,20 @@ public class FormatDetector {
     
     private final String[] audioFormats = {"mp3", "wav", "flac", "aac", "ogg", "wma", "alac"};
     private final String[] videoFormats = {"mpg", "mov", "wmv", "rm", "mp4"};
-    private final String[] documentFormats = {"doc", "docx", "odt", "rtf", "tex", "txt", "wpd"};
-    private final String[] imageFormats = {"jpeg", "jpg", "bpm", "png", "gif", "tiff", "psd", "pdf", "eps"};
+    private final String[] documentFormats = {"doc", "docx", "odt", "rtf", "tex", "txt", "wpd", "pdf"};
+    private final String[] imageFormats = {"jpeg", "jpg", "bpm", "png", "gif", "tiff", "psd", "eps"};
+    
+    private final Map<String, String> extMap;
     
     private FormatDetector() {
-        
+        extMap = new HashMap<>();
     }
     
     private String getExtension(String name) {
         StringBuilder sb = new StringBuilder();
+        if (extMap.containsKey(name)) {
+            return extMap.get(name);
+        }
         
         for (int i = name.length() - 1 ; i >= 0; i--) {
             char c = name.charAt(i);
@@ -38,7 +38,9 @@ public class FormatDetector {
             sb.append(c);
         }
         
-        return sb.isEmpty() || sb.length() == name.length() ? ""  : sb.reverse().toString();
+        String ext =  sb.isEmpty() || sb.length() == name.length() ? ""  : sb.reverse().toString();
+        extMap.put(name, ext);
+        return ext;
     } 
     
     private boolean isAudioFile(String ext) {

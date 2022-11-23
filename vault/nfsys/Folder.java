@@ -28,6 +28,21 @@ public class Folder extends FileSystemItem implements Serializable {
         files = new ArrayList<>();
     }
     
+    private List<Folder> getAllSubFolders() {
+        List<Folder> subs = new ArrayList<>();
+        subs.addAll(folders);
+        folders.forEach(x -> subs.addAll(x.getAllSubFolders()));
+        return subs;
+    }
+    
+    public boolean isSubFolder(Folder folder) {
+        if (folder.equals(this)) {
+            return true;
+        } else {
+            return getAllSubFolders().contains(folder);
+        }
+    }
+    
     public void setPassword(Password pass) {
         password = pass;
     }
@@ -155,7 +170,7 @@ public class Folder extends FileSystemItem implements Serializable {
     public void removeFolderReference(Folder folder) {
         if (folder != null && folders.contains(folder)) {
             folders.remove(folder);
-            sortFolders();
+            //sortFolders();
         }
     }
 
@@ -163,17 +178,13 @@ public class Folder extends FileSystemItem implements Serializable {
         if (folder != null && folders.contains(folder)) {
             folder.removeContent();
             folders.remove(folder);
-            sortFolders();
+            //sortFolders();
         }
     }
 
     public void addFile(FilePointer fp) {
-        if (fp == null || files.contains(fp)) {
-            return;
-        }
-
         files.add(fp);
-        sortFiles();
+        //sortFiles();
     }
 
     public boolean containsFile(FilePointer file) {
@@ -193,7 +204,7 @@ public class Folder extends FileSystemItem implements Serializable {
                 pointer.prepareForRemoval();
             }
             files.remove(pointer);
-            sortFiles();
+            //sortFiles();
         }
     }
 
@@ -207,7 +218,7 @@ public class Folder extends FileSystemItem implements Serializable {
 
             value.removeReference(file);
             file.prepareForRemoval();
-            sortFiles();
+            //sortFiles();
         }
     }
 

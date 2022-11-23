@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Scanner;
 import javax.swing.JOptionPane;
 import static vault.Constants.*;
+import vault.gui.MessageDialog;
 
 public class SessionLedger {
 
@@ -61,7 +62,7 @@ public class SessionLedger {
             out.close();
         } catch (IOException e) {
             System.out.println(e.getMessage());
-            JOptionPane.showMessageDialog(null, e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(null, e.getMessage());
         }
     }
 
@@ -72,7 +73,7 @@ public class SessionLedger {
             out.close();
         } catch (IOException e) {
             System.out.println(e.getMessage());
-            JOptionPane.showMessageDialog(null, e.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(null, e.getMessage());
         }
     }
 }

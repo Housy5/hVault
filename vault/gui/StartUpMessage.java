@@ -1,16 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JDialog.java to edit this template
- */
 package vault.gui;
 
 import javax.swing.SwingUtilities;
 import vault.Main;
 
-/**
- *
- * @author olivi
- */
 public class StartUpMessage extends javax.swing.JDialog {
 
     /**

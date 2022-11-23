@@ -12,11 +12,12 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import javax.swing.JOptionPane;
 import vault.Constants;
 import vault.Main;
 import vault.NameUtilities;
 import vault.encrypt.Encryptor;
+import vault.gui.FinishedImportDialog;
+import vault.gui.MessageDialog;
 import vault.nfsys.FilePointer;
 import vault.nfsys.FileSystem;
 import vault.nfsys.Folder;
@@ -62,7 +63,7 @@ public class ImportQueue implements Runnable {
         try {
             return Files.readAllBytes(file.toPath());
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(Main.frameInstance, ex.getMessage());
             return new byte[] {};
         }
     }
@@ -80,7 +81,7 @@ public class ImportQueue implements Runnable {
         try ( var out = new ObjectOutputStream(new FileOutputStream(f))) {
             out.writeObject(Encryptor.encryptObject(hFile));
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(Main.frameInstance, ex.getMessage());
             return false;
         }
         
@@ -123,15 +124,12 @@ public class ImportQueue implements Runnable {
     }
 
     private void finalizeImport() {
-        String msg = importedFiles.size() > 1 ?
-                "Do you want to remove the original file from your computer?" :
-                "Do you want to remove the original files from your computer?";
+        var dialog = new FinishedImportDialog(Main.frameInstance, List.copyOf(importedFiles));
+        int opt = dialog.showDialog();
         
-        int option = JOptionPane.showConfirmDialog(Main.frameInstance, msg);
-        
-        if (option == JOptionPane.YES_OPTION) {
+        if (opt == FinishedImportDialog.DELETE_ALL_OPTION) {
             importedFiles.forEach(file -> file.delete());
-        } else if (option == JOptionPane.CANCEL_OPTION) {
+        } else if (opt == FinishedImportDialog.CANCEL_OPTION) {
             importedPointers.forEach(x -> fsys.removeFile(x));
             Collections.reverse(importedFolders);
             importedFolders.forEach(x -> fsys.removeFolder(x));
@@ -139,7 +137,7 @@ public class ImportQueue implements Runnable {
             Main.reload();
         }
         
-        if (option == JOptionPane.YES_OPTION || option == JOptionPane.NO_OPTION) {
+        if (opt != FinishedImportDialog.CANCEL_OPTION) {
             Main.frameInstance.finishImport();
         }
         

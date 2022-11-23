@@ -2,6 +2,7 @@ package vault;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import vault.format.FormatDetector;
 import vault.nfsys.FilePointer;
@@ -10,6 +11,51 @@ import vault.nfsys.FileSystemItem;
 import vault.nfsys.Folder;
 
 public class Sorter {
+
+    private class NameComparator implements Comparator<Object> {
+
+        @Override
+        public int compare(Object o1, Object o2) {
+            if (o1 instanceof FileSystemItem && o2 instanceof FileSystemItem) {
+                return ((FileSystemItem) o1).getName().compareTo(((FileSystemItem) o2).getName());
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+
+    }
+
+    private class SizeComparator implements Comparator<Object> {
+
+        @Override
+        public int compare(Object o1, Object o2) {
+            if (o1 instanceof FileSystemItem && o2 instanceof FileSystemItem) {
+                var item1 = (FileSystemItem) o1;
+                var item2 = (FileSystemItem) o2;
+
+                return Long.signum(item1.getSize() - item2.getSize());
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+        
+    }
+
+    private class TimeComparator implements Comparator<Object> {
+
+        @Override
+        public int compare(Object o1, Object o2) {
+            if (o1 instanceof FileSystemItem && o2 instanceof FileSystemItem) {
+                var item1 = (FileSystemItem) o1;
+                var item2 = (FileSystemItem) o2;
+
+                return Long.signum(item2.getCreationDateAsLong() - item1.getCreationDateAsLong());
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+
+    }
 
     public static enum Type {
         AZ, ZA, NEWEST, OLDEST, IMAGES_FIRST, AUDIO_FIRST, DOCUMENTS_FIRST, VIDEOS_FIRST, BIGGEST, SMALLEST;
@@ -80,43 +126,43 @@ public class Sorter {
 
         switch (type) {
             case AZ -> {
-                folders = bubbleAZ(folders, false);
-                pointers = bubbleAZ(pointers, false);
+                folders = sortAZ(folders, false);
+                pointers = sortAZ(pointers, false);
             }
             case ZA -> {
-                folders = bubbleAZ(folders, true);
-                pointers = bubbleAZ(pointers, true);
+                folders = sortAZ(folders, true);
+                pointers = sortAZ(pointers, true);
             }
             case NEWEST -> {
-                folders = bubbleByTime(folders, false);
-                pointers = bubbleByTime(pointers, false);
+                folders = sortTime(folders, false);
+                pointers = sortTime(pointers, false);
             }
             case OLDEST -> {
-                folders = bubbleByTime(folders, true);
-                pointers = bubbleByTime(pointers, true);
+                folders = sortTime(folders, true);
+                pointers = sortTime(pointers, true);
             }
             case SMALLEST -> {
-                folders = bubbleBySize(folders, false);
-                pointers = bubbleBySize(pointers, false);
+                folders = sortSize(folders, false);
+                pointers = sortSize(pointers, false);
             }
             case BIGGEST -> {
-                folders = bubbleBySize(folders, true);
-                pointers = bubbleBySize(pointers, true);
+                folders = sortSize(folders, true);
+                pointers = sortSize(pointers, true);
             }
             case IMAGES_FIRST -> {
-                folders = bubbleAZ(folders, false);
+                folders = sortAZ(folders, false);
                 pointers = sortByType(pointers, FormatDetector.IMAGE);
             }
             case AUDIO_FIRST -> {
-                folders = bubbleAZ(folders, false);
+                folders = sortAZ(folders, false);
                 pointers = sortByType(pointers, FormatDetector.AUDIO);
             }
             case DOCUMENTS_FIRST -> {
-                folders = bubbleAZ(folders, false);
+                folders = sortAZ(folders, false);
                 pointers = sortByType(pointers, FormatDetector.DOCUMENT);
             }
             case VIDEOS_FIRST -> {
-                folders = bubbleAZ(folders, false);
+                folders = sortAZ(folders, false);
                 pointers = sortByType(pointers, FormatDetector.VIDEO);
             }
         }
@@ -135,86 +181,30 @@ public class Sorter {
         this.type = type;
     }
 
-    public List<Object> bubbleAZ(List<Object> items, boolean inverse) {
-        boolean swapped = true;
-
-        while (swapped) {
-            swapped = false;
-
-            for (int i = 0; i < items.size() - 1; i++) {
-                Object obj = items.get(i);
-                Object obj2 = items.get(i + 1);
-                if (obj instanceof FileSystemItem && obj2 instanceof FileSystemItem) {
-                    var item = (FileSystemItem) obj;
-                    var item2 = (FileSystemItem) obj2;
-                    if (item.getName().compareTo(item2.getName()) > 0) {
-                        Collections.swap(items, i, i + 1);
-                        swapped = true;
-                    }
-                }
-            }
-        }
-
+    public List<Object> sortAZ(List<Object> items, boolean inverse) {
         if (inverse) {
-            Collections.reverse(items);
+            Collections.sort(items, new NameComparator().reversed());
+        } else {
+            Collections.sort(items, new NameComparator());
+        }
+        return items;
+    }
+
+    public List<Object> sortSize(List<Object> items, boolean inverse) {
+        if (inverse) {
+            Collections.sort(items, new SizeComparator().reversed());
+        } else {
+            Collections.sort(items, new SizeComparator());
         }
 
         return items;
     }
 
-    public List<Object> bubbleBySize(List<Object> items, boolean inverse) {
-        boolean swapped = true;
-
-        while (swapped) {
-            swapped = false;
-
-            for (int i = 0; i < items.size() - 1; i++) {
-                Object obj = items.get(i);
-                Object obj2 = items.get(i + 1);
-
-                if (obj instanceof FileSystemItem && obj2 instanceof FileSystemItem) {
-                    var item = (FileSystemItem) obj;
-                    var item2 = (FileSystemItem) obj2;
-
-                    if (item.getSize() > item2.getSize()) {
-                        Collections.swap(items, i, i + 1);
-                        swapped = true;
-                    }
-                }
-            }
-        }
-
+    public List<Object> sortTime(List<Object> items, boolean inverse) {
         if (inverse) {
-            Collections.reverse(items);
-        }
-
-        return items;
-    }
-
-    public List<Object> bubbleByTime(List<Object> items, boolean inverse) {
-        boolean swapped = true;
-
-        while (swapped) {
-            swapped = false;
-
-            for (int i = 0; i < items.size() - 1; i++) {
-                Object obj = items.get(i);
-                Object obj2 = items.get(i + 1);
-
-                if (obj instanceof FileSystemItem && obj2 instanceof FileSystemItem) {
-                    var item = (FileSystemItem) obj;
-                    var item2 = (FileSystemItem) obj2;
-
-                    if (item.getCreationDateAsLong() > item2.getCreationDateAsLong()) {
-                        Collections.swap(items, i, i + 1);
-                        swapped = true;
-                    }
-                }
-            }
-        }
-
-        if (inverse) {
-            Collections.reverse(items);
+            Collections.sort(items, new TimeComparator().reversed());
+        } else {
+            Collections.sort(items, new TimeComparator());
         }
 
         return items;
@@ -245,11 +235,11 @@ public class Sorter {
             }
         }
 
-        bubbleAZ(audio, false);
-        bubbleAZ(images, false);
-        bubbleAZ(documents, false);
-        bubbleAZ(videos, false);
-        bubbleAZ(others, false);
+        sortAZ(audio, false);
+        sortAZ(images, false);
+        sortAZ(documents, false);
+        sortAZ(videos, false);
+        sortAZ(others, false);
 
         indexWheel.alignWith(type, 0);
 

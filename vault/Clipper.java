@@ -1,6 +1,6 @@
 package vault;
 
-import javax.swing.JOptionPane;
+import vault.gui.MessageDialog;
 import vault.nfsys.Folder;
 import vault.nfsys.FilePointer;
 
@@ -14,11 +14,11 @@ public class Clipper {
     private static Folder origin;
     private static Type type;
 
-    private static boolean hasContent() {
+    private boolean hasContent() {
         return item != null && type == Type.CUT && origin != null;
     }
     
-    private static void restore() {
+    private void restore() {
         if (item instanceof FilePointer pointer) {
             if (origin.containsFile(pointer)) {
                 pointer.setName(NameUtilities.nextFileName(pointer.getName(), origin));
@@ -37,7 +37,7 @@ public class Clipper {
         Main.frameInstance.loadFolder(Main.frameInstance.user.fsys.getCurrentFolder());
     }
     
-    public static void paste() {
+    public void paste() {
         if (item == null) {
             return;
         }
@@ -45,7 +45,7 @@ public class Clipper {
         var fsys = Main.frameInstance.user.fsys;
         
         if (fsys.getCurrentFolder().isSearchFolder()) {
-            JOptionPane.showMessageDialog(Main.frameInstance, "You are not allowed to paste stuff here.", "info", JOptionPane.INFORMATION_MESSAGE);
+            MessageDialog.show(Main.frameInstance, "You are not allowed to paste stuff here " + Constants.ANGRY_FACE);
             return; 
         }
 
@@ -57,7 +57,7 @@ public class Clipper {
                 newName = NameUtilities.nextFileName(filePointer.getName(), current);
                 
                 if (newName == null) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "We couldn't paste the file \"" + filePointer.getName() + "\" over here.", "info", JOptionPane.INFORMATION_MESSAGE);
+                    MessageDialog.show(Main.frameInstance, "We couldn't paste the that file over here " + Constants.ANGRY_FACE);
                     return;
                 }
             }
@@ -84,7 +84,7 @@ public class Clipper {
                 newName = NameUtilities.nextFolderName(fol.getName(), current);
 
                 if (newName == null) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, "We couldn't paste the folder \"" + fol.getName() + "\" over here.", "info", JOptionPane.INFORMATION_MESSAGE);
+                    MessageDialog.show(Main.frameInstance, "We couldn't paste that folder over here " + Constants.ANGRY_FACE);
                     return;
                 }
             }
@@ -118,7 +118,7 @@ public class Clipper {
         }
     }
 
-    public static void copy(Object obj) {
+    public void copy(Object obj) {
         if (hasContent()) {
             restore();
         }
@@ -131,7 +131,7 @@ public class Clipper {
         }
     }
 
-    public static void cut(Object obj, Folder objOrigin) {
+    public void cut(Object obj, Folder objOrigin) {
         if (hasContent()) {
             restore();
         }

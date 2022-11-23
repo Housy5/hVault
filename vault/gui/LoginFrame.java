@@ -8,20 +8,21 @@ import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
-import javax.imageio.ImageIO;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.ImageIcon;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import vault.Constants;
 import vault.Export;
+import vault.IconUtil;
 import vault.Main;
+import vault.interfaces.Updatable;
 import vault.user.User;
 
-public class LoginFrame extends javax.swing.JFrame {
+public class LoginFrame extends javax.swing.JFrame implements Updatable{
 
-    public BufferedImage currentIcon;
+    public  BufferedImage currentIcon;
     private long lastPress;
-    
     private final long MINIMUM_WAIT_TIME = 1000;
 
     public LoginFrame() {
@@ -29,19 +30,27 @@ public class LoginFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
 
         try {
-            currentIcon = ImageIO.read(getClass().getResource("/res/vault (256).png"));
-            this.setIconImage(ImageIO.read(getClass().getResource("/res/vault.png")));
+            currentIcon = IconUtil.getInstance().getImage("/res/vault (256).png");
+            setIconImage(IconUtil.getInstance().getImage("/res/vault.png"));
+            modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
         } catch (IOException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(null, 
-                    ex.getMessage(),
-                    "error",
-                    JOptionPane.ERROR_MESSAGE);
+            MessageDialog.show(this, ex.getMessage());
         }
 
         jTextField1.requestFocus();
     }
 
+    @Override
+    public void update() {
+        try {
+            modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
+        } catch (IOException ex) {
+            Logger.getLogger(LoginFrame.class.getName()).log(Level.SEVERE, null, ex);
+            MessageDialog.show(this, ex.getMessage());
+        }
+    }
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -55,6 +64,7 @@ public class LoginFrame extends javax.swing.JFrame {
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
         jLabel4 = new javax.swing.JLabel();
+        modelbl = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("hVault - Login");
@@ -70,29 +80,30 @@ public class LoginFrame extends javax.swing.JFrame {
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("LOGIN");
 
-        jLabel2.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel2.setText("Username: ");
 
-        jTextField1.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
+        jTextField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 jTextField1KeyReleased(evt);
             }
         });
 
-        jLabel3.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
+        jLabel3.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel3.setText("Password: ");
 
+        jPasswordField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
         jPasswordField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 jPasswordField1KeyReleased(evt);
             }
         });
 
-        jButton1.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
-        jButton1.setText("Sign Up");
+        jButton1.setFont(new java.awt.Font("SansSerif", 1, 12)); // NOI18N
+        jButton1.setText("SIGN UP");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 jButton1MouseReleased(evt);
@@ -112,8 +123,8 @@ public class LoginFrame extends javax.swing.JFrame {
             }
         });
 
-        jButton2.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
-        jButton2.setText("Log In");
+        jButton2.setFont(new java.awt.Font("SansSerif", 1, 12)); // NOI18N
+        jButton2.setText("LOG IN");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 jButton2MouseReleased(evt);
@@ -134,6 +145,15 @@ public class LoginFrame extends javax.swing.JFrame {
         });
 
         jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/res/vault (256).png"))); // NOI18N
+        jLabel4.setToolTipText("<html><strong>Icon created by:</strong><p>Nikita Golubev");
+
+        modelbl.setIcon(new javax.swing.ImageIcon(getClass().getResource("/res/eye_light_mode.png"))); // NOI18N
+        modelbl.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        modelbl.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                modelblMouseReleased(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -146,18 +166,23 @@ public class LoginFrame extends javax.swing.JFrame {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel4)
                         .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel3)
-                                    .addComponent(jLabel2))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jPasswordField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 221, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(0, 0, Short.MAX_VALUE))
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(jLabel3)
+                                            .addComponent(jLabel2))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                            .addComponent(jPasswordField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(modelbl))))
                     .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
@@ -168,7 +193,7 @@ public class LoginFrame extends javax.swing.JFrame {
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addGroup(layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel4))
@@ -184,7 +209,9 @@ public class LoginFrame extends javax.swing.JFrame {
                         .addGap(18, 18, 18)
                         .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton1)))
+                        .addComponent(jButton1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(modelbl)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -214,11 +241,12 @@ public class LoginFrame extends javax.swing.JFrame {
 
     /**
      * Rotates the logo
+     *
      * @param user the user to be logged in.
      */
     private void rotateWheel(User user) {
         new Thread(() -> {
-            BufferedImage img = currentIcon;
+            var img = currentIcon;
             int turns = 10;
 
             var startTime = System.nanoTime();
@@ -271,10 +299,10 @@ public class LoginFrame extends javax.swing.JFrame {
         if (username.isBlank() || password.isBlank()) {
             return;
         }
-        
+
         username = username.trim();
         password = password.trim();
-        
+
         if (Main.users.containsKey(username)) {
             var user = Main.users.get(username);
             var hash = Constants.messageDigest.digest(Main.mixPassAndSalt(password, user.salt).getBytes());
@@ -282,16 +310,10 @@ public class LoginFrame extends javax.swing.JFrame {
             if (Arrays.equals(hash, user.hash)) {
                 rotateWheel(user);
             } else {
-                JOptionPane.showMessageDialog(this, 
-                        Constants.ACCESS_DENIED_TEXT,
-                        "info",
-                        JOptionPane.INFORMATION_MESSAGE);
+                MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
             }
         } else {
-            JOptionPane.showMessageDialog(this, 
-                    Constants.ACCESS_DENIED_TEXT,
-                    "info",
-                    JOptionPane.INFORMATION_MESSAGE);
+            MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
         }
     }
 
@@ -304,7 +326,7 @@ public class LoginFrame extends javax.swing.JFrame {
         Export.startIOMonitor(frame);
         frame.loadFolder(user.fsys.getRoot());
         dispose();
-        
+
         if (user.showStartUpMsg) {
             var startUpMsg = new StartUpMessage(this, true);
             startUpMsg.setVisible(true);
@@ -318,7 +340,7 @@ public class LoginFrame extends javax.swing.JFrame {
 
     private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased
         long now = System.currentTimeMillis();
-        
+
         if (evt.getKeyCode() == KeyEvent.VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             jPasswordField1.requestFocus();
             lastPress = now;
@@ -327,7 +349,7 @@ public class LoginFrame extends javax.swing.JFrame {
 
     private void jPasswordField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jPasswordField1KeyReleased
         long now = System.currentTimeMillis();
-        
+
         if (evt.getKeyCode() == KeyEvent.VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             login();
             lastPress = now;
@@ -348,7 +370,7 @@ public class LoginFrame extends javax.swing.JFrame {
 
     private void jButton2KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton2KeyReleased
         long now = System.currentTimeMillis();
-        
+
         if (evt.getKeyCode() == VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             login();
             lastPress = now;
@@ -357,7 +379,7 @@ public class LoginFrame extends javax.swing.JFrame {
 
     private void jButton1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton1KeyReleased
         long now = System.currentTimeMillis();
-        
+
         if (evt.getKeyCode() == VK_ENTER && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
             lastPress = now;
@@ -366,7 +388,7 @@ public class LoginFrame extends javax.swing.JFrame {
 
     private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
         long now = System.currentTimeMillis();
-        
+
         if (SwingUtilities.isLeftMouseButton(evt) && now - lastPress > MINIMUM_WAIT_TIME) {
             login();
             lastPress = now;
@@ -375,12 +397,18 @@ public class LoginFrame extends javax.swing.JFrame {
 
     private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
         long now = System.currentTimeMillis();
-        
+
         if (SwingUtilities.isLeftMouseButton(evt) && now - lastPress > MINIMUM_WAIT_TIME) {
             signUp();
             lastPress = now;
         }
     }//GEN-LAST:event_jButton1MouseReleased
+
+    private void modelblMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_modelblMouseReleased
+        if (SwingUtilities.isLeftMouseButton(evt)) {
+            Main.toggleUIMode(this);
+        }
+    }//GEN-LAST:event_modelblMouseReleased
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
@@ -392,5 +420,6 @@ public class LoginFrame extends javax.swing.JFrame {
     private javax.swing.JPasswordField jPasswordField1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTextField jTextField1;
+    private javax.swing.JLabel modelbl;
     // End of variables declaration//GEN-END:variables
 }

@@ -7,10 +7,10 @@ import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import javax.swing.JOptionPane;
 import vault.Main;
 import vault.NameUtilities;
 import vault.encrypt.Encryptor;
+import vault.gui.MessageDialog;
 import vault.nfsys.FilePointer;
 import vault.nfsys.Folder;
 
@@ -62,7 +62,7 @@ public class ExportQueue implements Runnable {
     }
     
     private void errorMessage(String fileName) {
-        JOptionPane.showMessageDialog(Main.frameInstance, "We couldn't export \"" + fileName + "\" to the specified location.", "info", JOptionPane.INFORMATION_MESSAGE);
+        MessageDialog.show(Main.frameInstance, "We couldn't export \"" + fileName + "\" to the specified location.");
     }
 
     private void exportFile(FilePointer pointer, Path exportDirectory) {
@@ -99,7 +99,7 @@ public class ExportQueue implements Runnable {
             folderName = NameUtilities.nextSystemFolderName(folderName, exportDirectory);
 
             if (folderName == null) {
-                JOptionPane.showMessageDialog(Main.frameInstance, "Failed to export the folder \"" + folder.getName() + "\"");
+                MessageDialog.show(Main.frameInstance, "Failed to export the folder \"" + folder.getName() + "\"");
                 return;
             }
 
@@ -109,7 +109,7 @@ public class ExportQueue implements Runnable {
         try {
             Files.createDirectory(newDirectory);
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(Main.frameInstance, "Failed to export the folder \"" + folder.getName() + "\"");
+            MessageDialog.show(Main.frameInstance, "Failed to export the folder \"" + folder.getName() + "\"");
             return;
         }
         
@@ -130,13 +130,12 @@ public class ExportQueue implements Runnable {
                 exportFolder(ticket.getFolder().get(), path);
             }
         } else {
-            JOptionPane.showMessageDialog(Main.frameInstance, "Export failed: invalid export ticket!");
+            MessageDialog.show(Main.frameInstance, "Export failed: invalid export ticket!");
         }
     }
 
     private void finalizeExports() {
-        JOptionPane.showMessageDialog(Main.frameInstance,
-                "Finished exporting " + exports.size() + " file(s).");
+        MessageDialog.show(Main.frameInstance, "Finished exporting " + exports.size() + " file(s).");
         exporting = false;
         exports.clear();
     }
@@ -160,7 +159,7 @@ public class ExportQueue implements Runnable {
 
                 Thread.sleep(SLEEP_TIME);
             } catch (InterruptedException e) {
-                JOptionPane.showMessageDialog(null, e.getMessage());
+                MessageDialog.show(Main.frameInstance, e.getMessage());
             }
         }
     }

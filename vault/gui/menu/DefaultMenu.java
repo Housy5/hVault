@@ -44,7 +44,7 @@ public class DefaultMenu extends EmptyMenu {
                 var fsys = frame.user.fsys;
                 
                 tiles.stream().filter(x -> x.isFile()).forEach(x -> fsys.removeFile(x.file));
-                tiles.stream().filter(x -> x.isFolder()).forEach(x -> fsys.removeFolder(x.folder));
+                tiles.stream().filter(x -> x.isFolder()).filter(x-> !x.folder.isLocked()).forEach(x -> fsys.removeFolder(x.folder));
                 
                 frame.loadFolder(fsys.getCurrentFolder());
                 Main.saveUsers();
@@ -78,10 +78,7 @@ public class DefaultMenu extends EmptyMenu {
                     if (x == Util.PASSWORD_ACCEPTED) {
                         Export.exportAll(user.fsys.getCurrentFolder().getFiles());
                     } else if (x == Util.PASSWORD_DENIED) {
-                        JOptionPane.showMessageDialog(Main.frameInstance,
-                                Constants.ACCESS_DENIED_TEXT,
-                                "info",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        MessageDialog.show(frame, Constants.ACCESS_DENIED_TEXT);
                     }
                 }
             }
@@ -94,14 +91,9 @@ public class DefaultMenu extends EmptyMenu {
         deleteAll.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (e == null) {
-                    return;
-                }
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    int x = JOptionPane.showConfirmDialog(Main.frameInstance,
-                            "(Cannot be undone) Are you sure you want to delete every file in this folder?");
-
-                    if (x == JOptionPane.YES_OPTION) {
+                    int opt = ConfirmDialog.show(Main.frameInstance, "(Cannot be undone) Are you sure you want to delete every file in this folder?");
+                    if (opt == ConfirmDialog.YES) {
                         user.fsys.getCurrentFolder().removeAllFiles();
                         frame.loadFolder(user.fsys.getCurrentFolder());
                         Main.saveUsers();
@@ -118,7 +110,7 @@ public class DefaultMenu extends EmptyMenu {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    Tile.addFolder();
+                    Util.createFolder();
                 }
             }
         });
@@ -144,7 +136,7 @@ public class DefaultMenu extends EmptyMenu {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    Clipper.paste();
+                    Main.frameInstance.getClipper().paste(); 
                 }
             }
         });
@@ -165,15 +157,12 @@ public class DefaultMenu extends EmptyMenu {
                             || !Export.importTasks.isEmpty()
                             || ImportQueue.instance().isImporting()
                             || ExportQueue.instance().isExporting()) {
-                        JOptionPane.showMessageDialog(Main.frameInstance, "You can't log out while importing or exporting files!",
-                                "info",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        MessageDialog.show(frame, "You can't log out while importing or exporting files!");
                         return;
                     }
 
-                    int x = JOptionPane.showConfirmDialog(Main.frameInstance, "Would you like to log out?");
-
-                    if (x == JOptionPane.YES_OPTION) {
+                    int x = ConfirmDialog.show(frame, "Are you sure you want to log out?");                    
+                    if (x == ConfirmDialog.YES) {
                         ImportQueue.instance().stop();
                         ExportQueue.instance().stop();
                         frame.stopProgressTimer();
@@ -199,9 +188,6 @@ public class DefaultMenu extends EmptyMenu {
         enableWelcomeMsg.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (e == null) {
-                    return;
-                }
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     user.showWelcomeMsg = true;
                     Main.saveUsers();
@@ -228,12 +214,9 @@ public class DefaultMenu extends EmptyMenu {
 
                     user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
                     Main.saveUsers();
-                    JOptionPane.showMessageDialog(Main.frameInstance,
-                            "Your password has been successfully updated!",
-                            "info",
-                            JOptionPane.INFORMATION_MESSAGE);
+                    MessageDialog.show(frame, "Your password has been updated!");
                 } else if (x == Util.PASSWORD_DENIED) {
-                    JOptionPane.showMessageDialog(Main.frameInstance, Constants.ACCESS_DENIED_TEXT, "info", JOptionPane.INFORMATION_MESSAGE);
+                    MessageDialog.show(frame, Constants.ACCESS_DENIED_TEXT);
                 }
             }
         });
@@ -245,10 +228,11 @@ public class DefaultMenu extends EmptyMenu {
         search.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-                String input = JOptionPane.showInputDialog(Main.frameInstance, "Your search keywords (separated by ','):");
-                if (input != null) {
-                    String[] keyWords = input.replaceAll(" ", "").split(",");
-                    var foundItems = user.fsys.search(keyWords);
+                SearchDialog dialog = new SearchDialog(Main.frameInstance, true);
+                int opt = dialog.open();
+                if (opt == SearchDialog.SEARCH) {
+                    String[] keywords = dialog.keywordsAsArray();
+                    var foundItems = user.fsys.search(keywords);
                     if (!foundItems.isEmpty()) {
                         Folder searchFolder = FolderBuilder.createSearchFolder(user.fsys.getCurrentFolder(), foundItems);
                         frame.loadFolder(searchFolder);

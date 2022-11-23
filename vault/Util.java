@@ -1,8 +1,10 @@
 package vault;
 
 import java.util.Arrays;
+import vault.gui.FolderCreationDialog;
 import vault.gui.PasswordDialog;
 import vault.nfsys.Folder;
+import vault.nfsys.FolderBuilder;
 import vault.user.User;
 
 public class Util {
@@ -38,6 +40,18 @@ public class Util {
             return PASSWORD_ACCEPTED;
         } else {
             return PASSWORD_DENIED;
+        }
+    }
+    
+    public static void createFolder() {
+        var dialog = new FolderCreationDialog(Main.frameInstance, true);
+        int opt = dialog.showDialog();
+        if (opt == FolderCreationDialog.CREATE_OPTION) {
+            String name = dialog.getFolderName();
+            Folder current = Main.frameInstance.user.fsys.getCurrentFolder();
+            current.addFolder(FolderBuilder.createFolder(name, current));
+            Main.reload();
+            Main.saveUsers(); 
         }
     }
 }

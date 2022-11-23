@@ -8,8 +8,8 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import javax.swing.JOptionPane;
 import vault.encrypt.Encryptor;
+import vault.gui.MessageDialog;
 
 public class HFile implements Serializable {
 
@@ -23,7 +23,7 @@ public class HFile implements Serializable {
             try {
                 location.createNewFile();
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(null, ex.getMessage(), "error", JOptionPane.ERROR_MESSAGE);
+                MessageDialog.show(null, ex.getMessage());
             }
         }
     }
@@ -45,7 +45,7 @@ public class HFile implements Serializable {
                 out.close();
             } catch (IOException e) {
                 String msg = String.format("Failed to update! tries: %d/%d", tries, maxTries);
-                JOptionPane.showMessageDialog(null, msg);
+                MessageDialog.show(null, msg);
                 success = false;
             }
         } while (!success && tries > tries);
