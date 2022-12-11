@@ -60,20 +60,20 @@ public class SignUpFrame extends javax.swing.JFrame implements Updatable {
         setTitle("hVault - Sign Up");
         setResizable(false);
 
-        jLabel1.setFont(new java.awt.Font("Serif", 1, 36)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("SIGN UP");
 
-        jLabel2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel2.setText("Username: ");
 
-        jLabel3.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jLabel3.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel3.setText("Password: ");
 
-        jLabel4.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel4.setText("Password again:");
 
-        jTextField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jTextField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jTextField1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextField1ActionPerformed(evt);
@@ -85,21 +85,21 @@ public class SignUpFrame extends javax.swing.JFrame implements Updatable {
             }
         });
 
-        jPasswordField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jPasswordField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jPasswordField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 jPasswordField1KeyPressed(evt);
             }
         });
 
-        jPasswordField2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jPasswordField2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jPasswordField2.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
                 jPasswordField2KeyPressed(evt);
             }
         });
 
-        jButton1.setFont(new java.awt.Font("SansSerif", 1, 12)); // NOI18N
+        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jButton1.setText("SIGN UP");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
@@ -117,7 +117,7 @@ public class SignUpFrame extends javax.swing.JFrame implements Updatable {
             }
         });
 
-        jButton2.setFont(new java.awt.Font("SansSerif", 1, 12)); // NOI18N
+        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jButton2.setText("BACK");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
@@ -164,7 +164,7 @@ public class SignUpFrame extends javax.swing.JFrame implements Updatable {
                                     .addGroup(layout.createSequentialGroup()
                                         .addComponent(jLabel4)
                                         .addGap(18, 18, 18)
-                                        .addComponent(jPasswordField2, javax.swing.GroupLayout.DEFAULT_SIZE, 128, Short.MAX_VALUE))
+                                        .addComponent(jPasswordField2, javax.swing.GroupLayout.DEFAULT_SIZE, 131, Short.MAX_VALUE))
                                     .addGroup(layout.createSequentialGroup()
                                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                             .addComponent(jLabel2)

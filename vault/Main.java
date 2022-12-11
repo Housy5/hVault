@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import java.awt.Color;
 import java.awt.EventQueue;
+import java.awt.Font;
 import java.awt.Image;
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,6 +45,7 @@ public class Main {
     public static Map<String, User> users;
     public static Map<FilePointer, ImageIcon> thumbnails;
     public static Properties uiProperties;
+    public static Font notoEmojiFont;
     
     private static UIMode uimode;
     
@@ -182,6 +184,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
+        System.out.println("");
         if (SessionLedger.attemptStart()) {
             Garbage.start();
             var lf = new LoginFrame();

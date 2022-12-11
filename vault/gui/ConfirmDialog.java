@@ -37,9 +37,10 @@ public class ConfirmDialog extends javax.swing.JDialog {
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel1.setText("CONFORMATION");
 
+        textlbl.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         textlbl.setText("Text");
 
-        jPanel1.setLayout(new java.awt.GridLayout());
+        jPanel1.setLayout(new java.awt.GridLayout(1, 0));
 
         jButton1.setText("Yes");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {

@@ -76,33 +76,33 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
             }
         });
 
-        jLabel1.setFont(new java.awt.Font("Serif", 1, 36)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("LOGIN");
 
-        jLabel2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel2.setText("Username: ");
 
-        jTextField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jTextField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 jTextField1KeyReleased(evt);
             }
         });
 
-        jLabel3.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jLabel3.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel3.setText("Password: ");
 
-        jPasswordField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jPasswordField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jPasswordField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 jPasswordField1KeyReleased(evt);
             }
         });
 
-        jButton1.setFont(new java.awt.Font("SansSerif", 1, 12)); // NOI18N
+        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jButton1.setText("SIGN UP");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
@@ -123,7 +123,7 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
             }
         });
 
-        jButton2.setFont(new java.awt.Font("SansSerif", 1, 12)); // NOI18N
+        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jButton2.setText("LOG IN");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {

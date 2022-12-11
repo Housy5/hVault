@@ -1,5 +1,6 @@
 package vault.gui;
 
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
@@ -8,6 +9,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -77,9 +79,10 @@ public class SearchDialog extends javax.swing.JDialog {
         public KeyWordPanel(String keyword) {
             if (keyword == null) throw new NullPointerException("'keyword' can't be null!");
             this.keyword = keyword;
+            setBorder(BorderFactory.createLineBorder(Color.BLACK, 1, true));
             setLayout(new FlowLayout());
             JLabel lbl = new JLabel(keyword);
-            JButton delete = new JButton("\u2a2f");
+            JButton delete = new JButton("X");
             ExitButtonListener listener = new ExitButtonListener();
             delete.addKeyListener(listener);
             delete.addMouseListener(listener);

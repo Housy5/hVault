@@ -4,11 +4,14 @@ import java.awt.Graphics;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import vault.encrypt.Encryptor;
+import vault.nfsys.FilePointer;
 
 public final class IconUtil {
 
@@ -29,6 +32,12 @@ public final class IconUtil {
         };
     }
 
+    public final BufferedImage getImage(FilePointer pointer) throws IOException {
+        var bytes = Encryptor.decode(pointer.getBytes());
+        var bytesInput = new ByteArrayInputStream(bytes);
+        return ImageIO.read(bytesInput);
+    }
+    
     public final BufferedImage getImage(String path) throws IOException {
         if (map.containsKey(path)) {
             return map.get(path);

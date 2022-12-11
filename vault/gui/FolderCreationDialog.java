@@ -79,16 +79,16 @@ public final class FolderCreationDialog extends javax.swing.JDialog {
             }
         });
 
-        jLabel1.setFont(new java.awt.Font("SansSerif", 1, 18)); // NOI18N
-        jLabel1.setText("FOLDER CREATION");
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel1.setText("CREATE FOLDER");
 
         jPanel1.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
 
-        jLabel4.setFont(new java.awt.Font("SansSerif", 1, 14)); // NOI18N
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel4.setText("Folder name:");
         jPanel1.add(jLabel4);
 
-        jTextField2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jTextField2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jTextField2.setPreferredSize(new java.awt.Dimension(150, 22));
         jTextField2.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {

@@ -21,11 +21,11 @@ public class Constants {
     public final static Color FONT_COLOR = new Color(0x657c8c);
 
     public final static String PASSWORD_POPUP_TEXT = "Please enter your password: ";
-    public final static String UPSIDE_DOWN_EMOTE = "\ud83d\ude43";
-    public final static String ANGRY_FACE = "\ud83d\ude20";
-    public final static String STOP_HAND = "\u270b";
-    public final static String SHRUG_PERSON = "\ud83e\udd37";
-    public final static String FACE_PALM = "\ud83e\udd26";
+    public final static String UPSIDE_DOWN_EMOTE = "";
+    public final static String ANGRY_FACE = "";
+    public final static String STOP_HAND = "";
+    public final static String SHRUG_PERSON = "";
+    public final static String FACE_PALM = "";
     public final static String ACCESS_DENIED_TEXT = "You have been denied access " + FACE_PALM;
     
     public final static UIMode DEFAULT_UIMODE = UIMode.DARK;

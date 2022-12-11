@@ -15,7 +15,6 @@ import java.awt.dnd.DragSource;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.SwingUtilities;
@@ -42,7 +40,6 @@ import vault.IconUtil;
 import vault.NameUtilities;
 import vault.Sorter;
 import vault.Util;
-import vault.encrypt.Encryptor;
 import vault.format.FormatDetector;
 import vault.queue.ImportQueue;
 import vault.queue.ImportTicket;
@@ -89,7 +86,7 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
 
         sorter = new Sorter(user.fsys);
         clipper = new Clipper();
-        
+
         addDropTarget();
         initIcon();
     }
@@ -101,19 +98,19 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
             var primaryBorder = (TitledBorder) jPanel1.getBorder();
             var line = new LineBorder((Color) p.get("primary.color"), 1, true);
             primaryBorder.setBorder(line);
-            
+
             var border = (CompoundBorder) jPanel3.getBorder();
             var outside = border.getOutsideBorder();
             var inside = new LineBorder((Color) p.get("secondary.color"), 1, true);
             jPanel3.setBorder(new CompoundBorder(outside, inside));
-            
+
             jSeparator1.setForeground((Color) p.get("secondary.color"));
             jSeparator2.setForeground((Color) p.get("secondary.color"));
-            
+
             progressLblColor = (Color) p.get("primary.color");
-            
+
             modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
-            
+
             Arrays.stream(jPanel1.getComponents()).filter(x -> x instanceof Updatable).forEach(x -> ((Updatable) x).update());
         } catch (IOException ex) {
             Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
@@ -228,13 +225,13 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
 
         if (importQueue.isImporting() && exportQueue.isExporting()) {
             jLabel1.setForeground(defaultColor);
-            jLabel1.setText(String.format("Importing: %d files left, Exporting: %d files left.", importQueue.count(), exportQueue.count()));
+            jLabel1.setText(String.format("Importing: %d files left, Exporting: %d files left.", importQueue.count() + 1, exportQueue.count() + 1));
         } else if (importQueue.isImporting()) {
             jLabel1.setForeground(defaultColor);
-            jLabel1.setText(String.format("Importing: %d files left.", importQueue.count()));
+            jLabel1.setText(String.format("Importing: %d files left.", importQueue.count() + 1));
         } else if (exportQueue.isExporting()) {
             jLabel1.setForeground(defaultColor);
-            jLabel1.setText(String.format("Exporting: %d files left.", exportQueue.count()));
+            jLabel1.setText(String.format("Exporting: %d files left.", exportQueue.count() + 1));
         } else if (System.currentTimeMillis() - finishImportTime < 3000) {
             jLabel1.setForeground(new Color(0x87a96b));
             jLabel1.setText("Success!");
@@ -279,11 +276,9 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
 
     private ImageIcon loadThumbNail(FilePointer pointer) {
         try {
-            var bytes = Encryptor.decode(pointer.getBytes());
-            var bytesInput = new ByteArrayInputStream(bytes);
-
-            var img = ImageIO.read(bytesInput).getScaledInstance(32, 32, Image.SCALE_SMOOTH);
-            return new ImageIcon(img);
+            var img = IconUtil.getInstance().getImage(pointer);
+            var scaled = img.getScaledInstance(32, 32, Image.SCALE_FAST);
+            return new ImageIcon(scaled);
         } catch (IOException | NullPointerException ex) {
             Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, "Something went wrong trying to create a thumbnail.", ex);
             return null;
@@ -411,7 +406,6 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     jPanel2.setDoubleBuffered(false);
     jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
 
-    jLabel1.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
     jLabel1.setText("Waiting...");
     jPanel2.add(jLabel1);
 
@@ -423,7 +417,8 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     jButton1.setText("\u276e");
     jButton1.setFocusPainted(false);
     jButton1.setFocusTraversalPolicyProvider(true);
-    jButton1.setSelected(true);
+    jButton1.setFocusable(false);
+    jButton1.setRequestFocusEnabled(false);
     jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
         public void mouseReleased(java.awt.event.MouseEvent evt) {
             jButton1MouseReleased(evt);
@@ -433,6 +428,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
 
     jButton2.setText("\u276f");
     jButton2.setFocusPainted(false);
+    jButton2.setFocusable(false);
     jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
         public void mouseReleased(java.awt.event.MouseEvent evt) {
             jButton2MouseReleased(evt);
@@ -553,7 +549,6 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
         }
         return tiles;
     }
-
     private void jPanel1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseReleased
         if (SwingUtilities.isRightMouseButton(evt)) {
             if (!user.fsys.getCurrentFolder().isSearchFolder()) {
@@ -646,7 +641,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     private Color invertColor(Color color) {
         return new Color(255 - color.getRed(), 255 - color.getGreen(), 255 - color.getBlue());
     }
-    
+
     private void jPanel1MouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseDragged
         if (startPoint == null) {
             startPoint = evt.getPoint();
@@ -663,7 +658,6 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             Graphics g = jPanel1.getGraphics();
             g.setColor((Color) Main.getUIProperties().get("secondary.color"));
             g.drawRect(x, y, width, height);
-            
 
             var tiles = getTiles();
             for (Tile tile : tiles) {

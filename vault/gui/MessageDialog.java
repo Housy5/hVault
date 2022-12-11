@@ -43,15 +43,14 @@ public class MessageDialog extends javax.swing.JDialog {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        jLabel1.setFont(new java.awt.Font("SansSerif", 1, 18)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel1.setText("MESSAGE");
 
-        jLabel2.setFont(new java.awt.Font("Segoe UI Emoji", 0, 18)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("Segoe UI Emoji", 0, 14)); // NOI18N
         jLabel2.setText("Text");
 
         jPanel1.setLayout(new java.awt.GridLayout(1, 0));
 
-        jButton1.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
         jButton1.setText("OK");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
@@ -65,7 +64,6 @@ public class MessageDialog extends javax.swing.JDialog {
         });
         jPanel1.add(jButton1);
 
-        jButton2.setFont(new java.awt.Font("SansSerif", 0, 12)); // NOI18N
         jButton2.setText("CANCEL");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {

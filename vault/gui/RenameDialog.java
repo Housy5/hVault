@@ -90,17 +90,17 @@ public final class RenameDialog extends javax.swing.JDialog {
 
         jPanel1.setLayout(new java.awt.CardLayout());
 
-        jLabel1.setFont(new java.awt.Font("SansSerif", 1, 18)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel1.setText("RENAME");
         jPanel1.add(jLabel1, "card2");
 
         jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEADING));
 
-        jLabel2.setFont(new java.awt.Font("SansSerif", 1, 14)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel2.setText("New name:");
         jPanel2.add(jLabel2);
 
-        jTextField1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jTextField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jTextField1.setPreferredSize(new java.awt.Dimension(150, 25));
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
@@ -112,7 +112,7 @@ public final class RenameDialog extends javax.swing.JDialog {
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/res/loading.png"))); // NOI18N
         jPanel2.add(jLabel3);
 
-        jPanel3.setLayout(new java.awt.GridLayout());
+        jPanel3.setLayout(new java.awt.GridLayout(1, 0));
 
         jButton1.setText("ACCEPT");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {

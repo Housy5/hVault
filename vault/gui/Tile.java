@@ -108,7 +108,7 @@ public class Tile extends JPanel implements Updatable {
                 }
             });
 
-            var open = new JMenuItem("Open");
+            var open = new JMenuItem("Open on System");
             open.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
@@ -157,15 +157,7 @@ public class Tile extends JPanel implements Updatable {
                             case ADD -> {
                             }
                             case FILE -> {
-                                FileSystem fsys = frameInstance.user.fsys;
-                                fsys.removeFile(file);
-
-                                if (fsys.getCurrentFolder().isSearchFolder()) {
-                                    fsys.getCurrentFolder().removeFilePointer(file);
-                                }
-
-                                frameInstance.loadFolder(fsys.getCurrentFolder());
-                                Main.saveUsers();
+                                deleteFile();
                             }
                             case FOLDER -> {
                                 FileSystem fsys = frameInstance.user.fsys;
@@ -187,9 +179,33 @@ public class Tile extends JPanel implements Updatable {
                 }
 
                 private void removeFolder(FileSystem fsys) {
-                    fsys.removeFolder(folder);
-                    frameInstance.loadFolder(fsys.getCurrentFolder());
-                    Main.saveUsers();
+                    Runnable runnable = new Runnable() {
+                        public void run() {
+                            fsys.removeFolder(folder);
+                            frameInstance.loadFolder(fsys.getCurrentFolder());
+                            Main.saveUsers();
+                        }
+                    };
+                    Thread thread = new Thread(runnable);
+                    thread.start();
+                }
+
+                private void deleteFile() {
+                    Runnable runnable = new Runnable() {
+                        public void run() {
+                            FileSystem fsys = frameInstance.user.fsys;
+                            fsys.removeFile(file);
+                            
+                            if (fsys.getCurrentFolder().isSearchFolder()) {
+                                fsys.getCurrentFolder().removeFilePointer(file);
+                            }
+                            
+                            frameInstance.loadFolder(fsys.getCurrentFolder());
+                            Main.saveUsers();
+                        }
+                    };
+                    Thread thread = new Thread(runnable);
+                    thread.start();
                 }
             });
 

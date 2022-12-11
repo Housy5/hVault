@@ -55,13 +55,13 @@ public class FinishedImportDialog extends javax.swing.JDialog {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        jLabel3.setFont(new java.awt.Font("SansSerif", 1, 18)); // NOI18N
+        jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabel3.setText("IMPORT FINISHED");
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel1.setText("Imported files");
 
-        jList1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jList1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jList1.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_INTERVAL_SELECTION);
         jScrollPane1.setViewportView(jList1);
 
@@ -88,9 +88,9 @@ public class FinishedImportDialog extends javax.swing.JDialog {
                 .addContainerGap())
         );
 
-        jPanel2.setLayout(new java.awt.GridLayout());
+        jPanel2.setLayout(new java.awt.GridLayout(1, 0));
 
-        jButton1.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jButton1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jButton1.setText("DELETE ORIGINAL FILES");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
@@ -104,7 +104,7 @@ public class FinishedImportDialog extends javax.swing.JDialog {
         });
         jPanel2.add(jButton1);
 
-        jButton2.setFont(new java.awt.Font("SansSerif", 0, 14)); // NOI18N
+        jButton2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jButton2.setText("OK");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
