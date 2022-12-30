@@ -34,8 +34,7 @@ public final class FolderCreationDialog extends javax.swing.JDialog {
     }
 
     private boolean validateName(String name) {
-        var result = NameValidator.isValidFolderName(name);
-        return result && !Main.frameInstance.user.fsys.getCurrentFolder().containsFolderName(name);
+        return NameValidator.isValidFolderName(name, Main.getCurrentFolder());
     }
     
     private void accept() {

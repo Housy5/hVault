@@ -17,7 +17,9 @@ import vault.Export;
 import vault.IconUtil;
 import vault.Main;
 import vault.interfaces.Updatable;
+import vault.password.Password;
 import vault.user.User;
+import vault.user.UserFactory;
 
 public class SignUpFrame extends javax.swing.JFrame implements Updatable {
 
@@ -293,11 +295,11 @@ public class SignUpFrame extends javax.swing.JFrame implements Updatable {
         EventQueue.invokeLater(() -> frame.setVisible(true));
         Main.frameInstance = frame;
         frame.initTimer();
-        Export.startIOMonitor(frame);
-        frame.loadFolder(user.fsys.getRoot());
+        Export.startIOMonitor();
+        frame.loadFolder(user.getFileSystem().getRoot());
         dispose();
 
-        if (user.showStartUpMsg) {
+        if (user.showStartUpMessage()) {
             var startUpMsg = new StartUpMessage(this, true);
             startUpMsg.setVisible(true);
         }
@@ -306,44 +308,29 @@ public class SignUpFrame extends javax.swing.JFrame implements Updatable {
     }
 
     private void signUp() {
-        try {
-            var username = jTextField1.getText().trim();
-            var pass1 = jPasswordField1.getText();
-            var pass2 = jPasswordField2.getText();
-            var user = new User();
-
-            if (pass1.isBlank() || pass2.isBlank() || username.isBlank()) {
-                return;
-            }
-
-            username = username.trim();
-            pass1 = pass1.trim();
-            pass2 = pass2.trim();
-            
-            if (Main.users.containsKey(username)) {
-                MessageDialog.show(this, "It seems like there already is an user with that username " + Constants.SHRUG_PERSON);
-                return;
-            }
-
-            if (!pass1.equals(pass2)) {
-                MessageDialog.show(this, "The passwords didn't match " + Constants.FACE_PALM);
-                return;
-            }
-
-            user.showStartUpMsg = true;
-            user.showWelcomeMsg = true;
-            user.username = username;
-            user.salt = Main.generateSalt();
-            user.hash = MessageDigest.getInstance("SHA-256").digest(Main.mixPassAndSalt(pass2, user.salt).getBytes());
-            Main.users.put(username, user);
-
-            Main.saveUsers();
-            rotateWheel(user);
-
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(SignUpFrame.class.getName()).log(Level.SEVERE, null, ex);
-            MessageDialog.show(this, ex.getMessage());
+        var username = jTextField1.getText();
+        var pass1 = jPasswordField1.getText();
+        var pass2 = jPasswordField2.getText();
+        if (pass1.isBlank() || pass2.isBlank() || username.isBlank()) {
+            return;
         }
+        username = username.trim();
+        pass1 = pass1.trim();
+        pass2 = pass2.trim();
+        if (Main.users.containsKey(username)) {
+            MessageDialog.show(this, "It seems like there already is an user with that username " + Constants.SHRUG_PERSON);
+            return;
+        }
+        if (!pass1.equals(pass2)) {
+            MessageDialog.show(this, "The passwords didn't match " + Constants.FACE_PALM);
+            return;
+        }
+        
+        User user = UserFactory.createUser(username, pass2);
+        
+        Main.users.put(username, user);
+        Main.saveUsers();
+        rotateWheel(user);
     }
 
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed

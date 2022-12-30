@@ -6,7 +6,8 @@ import java.util.*;
 import javax.swing.*;
 import vault.*;
 import vault.gui.*;
-import vault.nfsys.*;
+import vault.fsys.*;
+import vault.password.Password;
 import vault.queue.*;
 import vault.user.*;
 
@@ -20,7 +21,7 @@ public class DefaultMenu extends EmptyMenu {
             @Override
             public void mouseReleased(MouseEvent e) {
                 var tiles = frame.getSelectedTiles();
-                List<Object> objs = new ArrayList<>();
+                List<FileSystemItem> objs = new ArrayList<>();
                 tiles.forEach(tile -> {
                     if (tile.isFile()) {
                         objs.add(tile.file);
@@ -28,7 +29,7 @@ public class DefaultMenu extends EmptyMenu {
                         objs.add(tile.folder);
                     }
                 });
-                Export.exportAllV2(objs);
+                Export.exportAll(objs);
             }
         });
         
@@ -41,12 +42,12 @@ public class DefaultMenu extends EmptyMenu {
             @Override
             public void mouseReleased(MouseEvent e) {
                 var tiles = frame.getSelectedTiles();
-                var fsys = frame.user.fsys;
+                var fsys = frame.user.getFileSystem();
                 
-                tiles.stream().filter(x -> x.isFile()).forEach(x -> fsys.removeFile(x.file));
+                tiles.stream().filter(x -> x.isFile()).forEach(x -> fsys.removeFilePointer(x.file));
                 tiles.stream().filter(x -> x.isFolder()).filter(x-> !x.folder.isLocked()).forEach(x -> fsys.removeFolder(x.folder));
                 
-                frame.loadFolder(fsys.getCurrentFolder());
+                frame.loadFolder(fsys.getCurrent());
                 Main.saveUsers();
             }
         });
@@ -61,7 +62,7 @@ public class DefaultMenu extends EmptyMenu {
                 if (e == null) {
                     return;
                 }
-                frame.loadFolder(user.fsys.getCurrentFolder());
+                frame.loadFolder(user.getFileSystem().getCurrent());
             }
         });
         return refresh;
@@ -76,7 +77,7 @@ public class DefaultMenu extends EmptyMenu {
                     int x = Util.requestPassword();
 
                     if (x == Util.PASSWORD_ACCEPTED) {
-                        Export.exportAll(user.fsys.getCurrentFolder().getFiles());
+                        Export.exportAll(user.getFileSystem().getCurrent().getPointers());
                     } else if (x == Util.PASSWORD_DENIED) {
                         MessageDialog.show(frame, Constants.ACCESS_DENIED_TEXT);
                     }
@@ -94,8 +95,8 @@ public class DefaultMenu extends EmptyMenu {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     int opt = ConfirmDialog.show(Main.frameInstance, "(Cannot be undone) Are you sure you want to delete every file in this folder?");
                     if (opt == ConfirmDialog.YES) {
-                        user.fsys.getCurrentFolder().removeAllFiles();
-                        frame.loadFolder(user.fsys.getCurrentFolder());
+                        user.getFileSystem().removeAllPointers();
+                        frame.loadFolder(user.getFileSystem().getCurrent());
                         Main.saveUsers();
                     }
                 }
@@ -153,9 +154,7 @@ public class DefaultMenu extends EmptyMenu {
                 }
                 if (SwingUtilities.isLeftMouseButton(e)) {
 
-                    if (!Export.exportTasks.isEmpty()
-                            || !Export.importTasks.isEmpty()
-                            || ImportQueue.instance().isImporting()
+                    if (ImportQueue.instance().isImporting()
                             || ExportQueue.instance().isExporting()) {
                         MessageDialog.show(frame, "You can't log out while importing or exporting files!");
                         return;
@@ -175,7 +174,7 @@ public class DefaultMenu extends EmptyMenu {
                         return;
                     }
 
-                    frame.loadFolder(user.fsys.getCurrentFolder());
+                    frame.loadFolder(user.getFileSystem().getCurrent());
                     Main.saveUsers();
                 }
             }
@@ -189,7 +188,7 @@ public class DefaultMenu extends EmptyMenu {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    user.showWelcomeMsg = true;
+                    user.toggleWelcomeMessage();
                     Main.saveUsers();
                 }
             }
@@ -207,13 +206,9 @@ public class DefaultMenu extends EmptyMenu {
                 if (x == Util.PASSWORD_ACCEPTED) {
                     var dialog = new NewPasswordDialog(Main.frameInstance);
                     String newPass = dialog.getPassword();
-
-                    if (newPass == null) {
+                    if (newPass == null || newPass.isBlank())
                         return;
-                    }
-
-                    user.hash = Constants.messageDigest.digest(Main.mixPassAndSalt(newPass, user.salt).getBytes());
-                    Main.saveUsers();
+                    user.setPassword(new Password(newPass));
                     MessageDialog.show(frame, "Your password has been updated!");
                 } else if (x == Util.PASSWORD_DENIED) {
                     MessageDialog.show(frame, Constants.ACCESS_DENIED_TEXT);
@@ -232,9 +227,9 @@ public class DefaultMenu extends EmptyMenu {
                 int opt = dialog.open();
                 if (opt == SearchDialog.SEARCH) {
                     String[] keywords = dialog.keywordsAsArray();
-                    var foundItems = user.fsys.search(keywords);
+                    var foundItems = user.getFileSystem().search(keywords);
                     if (!foundItems.isEmpty()) {
-                        Folder searchFolder = FolderBuilder.createSearchFolder(user.fsys.getCurrentFolder(), foundItems);
+                        Folder searchFolder = FolderFactory.createSearchFolder(user.getFileSystem().getCurrent(), foundItems);
                         frame.loadFolder(searchFolder);
                     }
                 }
@@ -252,7 +247,7 @@ public class DefaultMenu extends EmptyMenu {
             add(new JSeparator());
         }
         
-        if (user.fsys.getCurrentFolder().getFileCount() > 1)  {
+        if (user.getFileSystem().getCurrent().getPointers().size() > 1)  {
             add(createExportAllItem());
             add(createDeleteAllItem());
             add(new JSeparator());
@@ -268,7 +263,7 @@ public class DefaultMenu extends EmptyMenu {
         add(createLogoutItem()); 
         add(createPasswordItem());
         
-        if (!user.showWelcomeMsg) {
+        if (!user.showWelcomeMessage()) {
             add(new JSeparator());
             add(createEnableWelcomeMsgItem());
         }

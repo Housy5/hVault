@@ -1,64 +1,71 @@
 package vault.user;
 
 import java.io.Serializable;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-
-import vault.nfsys.FileSystem;
+import vault.fsys.FileSystem;
+import vault.password.Password;
 
 public class User implements Serializable {
 
-    public FileSystem fsys;
-    public byte[] hash;
-    public String salt;
-    public boolean showStartUpMsg;
-    public boolean showWelcomeMsg;
-    public String username;
-    private final byte[] iv = new byte[16];
-    private final int keySize = 256;
-
-    private SecretKey key;
+    private transient FileSystem fsys;
+    private transient UserSaver saver;
+    private Password password;
+    private boolean showStartUpMsg;
+    private boolean showWelcomeMsg;
+    private String username;
 
     public User() {
         fsys = new FileSystem();
-        createKey();
-        createIv();
-    }
-
-    public final IvParameterSpec getIv() {
-        return new IvParameterSpec(iv);
+        showStartUpMsg = true;
+        showWelcomeMsg = true;
     }
     
-    /**
-     * Returns the key assigned to this user
-     * @return The SecretKey assigned to this User
-     */
-    public final SecretKey getKey() {
-        return key;
+    public final void setSaver(UserSaver saver) {
+        this.saver = saver;
     }
-
-    /**
-     * Creates an random initialization vector
-     */
-    private void createIv() {
-        new SecureRandom().nextBytes(iv);
+    
+    public final FileSystem getFileSystem() {
+        return fsys;
     }
-
-    /**
-     * Creates a secret key
-     */
-    private void createKey() {
-        try {
-            var keyGen = KeyGenerator.getInstance("AES");
-            keyGen.init(keySize);
-            key = keyGen.generateKey();
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(User.class.getName()).log(Level.SEVERE, null, ex);
-        }
+    
+    public final Password getPassword() {
+        return password;
+    }
+    
+    public final void setPassword(Password pass) {
+        password = pass;
+    }
+    
+    public final void toggleStartUpMessage() {
+        showStartUpMsg = !showStartUpMsg;
+    }
+    
+    public final boolean showStartUpMessage() {
+        return showStartUpMsg;
+    }
+    
+    public final void toggleWelcomeMessage() {
+        showWelcomeMsg = !showWelcomeMsg;
+    }
+    
+    public final boolean showWelcomeMessage() {
+        return showWelcomeMsg;
+    }
+    
+    public final String getUsername() {
+        return username;
+    }
+    
+    public final void setUsername(String usrn) {
+        username = usrn;
+    }
+    
+    public final void init() {
+        fsys = new FileSystem();
+        saver = new UserSaver(this);
+        saver.load();
+    }
+    
+    public final void save() {
+        saver.save();
     }
 }

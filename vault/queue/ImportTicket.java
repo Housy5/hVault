@@ -3,7 +3,7 @@ package vault.queue;
 import java.io.File;
 import java.util.Objects;
 import java.util.UUID;
-import vault.nfsys.Folder;
+import vault.fsys.Folder;
 
 public class ImportTicket {
 

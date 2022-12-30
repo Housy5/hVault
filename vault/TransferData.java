@@ -7,8 +7,8 @@ package vault;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
-import vault.nfsys.FilePointer;
-import vault.nfsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.Folder;
 
 /**
  *

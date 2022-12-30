@@ -7,9 +7,9 @@ import javax.swing.SwingUtilities;
 import vault.IconUtil;
 import vault.Main;
 import vault.NameValidator;
-import vault.nfsys.FilePointer;
-import vault.nfsys.FileSystemItem;
-import vault.nfsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.FileSystemItem;
+import vault.fsys.Folder;
 
 public final class RenameDialog extends javax.swing.JDialog {
 
@@ -27,14 +27,11 @@ public final class RenameDialog extends javax.swing.JDialog {
     };
 
     private boolean validateName(String name) {
-        var current = Main.frameInstance.user.fsys.getCurrentFolder();
+        var current = Main.getCurrentFolder();
         if (item instanceof Folder) {
-            register = name;
-            return NameValidator.isValidFolderName(name) && !current.containsFolderName(name);
-        } else if (item instanceof FilePointer) {
-            var ext = NameValidator.splitNameAndExtension(item.getName())[1];
-            register = name = name + "." + ext;
-            return NameValidator.isValidName(name) && !current.containsFileName(name);
+            return validateFolderName(name, current);
+        } else if (item instanceof FilePointer pointer) {
+            return validatePointerName(name, pointer);
         } else {
             throw new IllegalStateException("'item' is supposed to be an instance of either Folder or FilePointer!");
         }
@@ -231,4 +228,15 @@ public final class RenameDialog extends javax.swing.JDialog {
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTextField jTextField1;
     // End of variables declaration//GEN-END:variables
+
+    private boolean validateFolderName(String name, Folder current) {
+        register = name;
+        return NameValidator.isValidFolderName(name, current);
+    }
+
+    private boolean validatePointerName(String name, FilePointer pointer) {
+        var ext = pointer.getExtension();
+        register = name = name + "." + ext;
+        return NameValidator.isValidPointerName(name);
+    }
 }

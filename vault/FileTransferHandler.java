@@ -5,8 +5,8 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 import java.util.List;
-import vault.nfsys.FilePointer;
-import vault.nfsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.Folder;
 
 public class FileTransferHandler implements Transferable {
 

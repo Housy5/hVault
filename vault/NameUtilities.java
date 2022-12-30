@@ -6,8 +6,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
 import vault.gui.RenameDialog;
-import vault.nfsys.FileSystemItem;
-import vault.nfsys.Folder;
+import vault.fsys.FileSystemItem;
+import vault.fsys.Folder;
 
 public class NameUtilities {
 
@@ -24,73 +24,92 @@ public class NameUtilities {
         }
         return sb.toString();
     }
-    
+
     public static final String shortenFullFolderName(String fullname) {
         var sep = Constants.URL_SEPARATOR;
         var arr = fullname.split(sep);
         var result = fullname;
         int exclude = 0;
-        
+
         while (result.length() > Constants.MAX_URL_LENGTH) {
             StringBuilder sb = new StringBuilder();
-            for(int i = 0; i < arr.length; i++) {
+            for (int i = 0; i < arr.length; i++) {
                 if (i > exclude) {
                     sb.append(sep).append(arr[i]);
                 }
             }
-            
+
             if (sb.isEmpty()) {
                 sb.append(sep).append(arr[arr.length - 1]);
-            } 
-            
+            }
+
             result = "..." + sb.toString();
             exclude++;
         }
         return result;
     }
-    
+
     public static final String nextFileName(final String original, final Folder dir) {
         String newName = null;
         int count = 1;
-        String[] tokens = NameValidator.splitNameAndExtension(original);
+        String[] tokens = splitNameAndExtension(original);
 
         do {
             newName = tokens[0] + "(" + String.valueOf(count) + ")." + tokens[1];
             count++;
-        } while (dir.containsFileName(newName) && count < Integer.MAX_VALUE);
+        } while (dir.containsPointerName(newName) && count < Integer.MAX_VALUE);
 
-        return count == Integer.MAX_VALUE ? null : newName;
+        if (count == Integer.MAX_VALUE)
+            throw new RuntimeException();
+
+        return newName;
+    }
+
+    public static String[] splitNameAndExtension(String fileName) {
+        int sepPoint = fileName.length();
+
+        for (int i = fileName.length() - 1; i >= 0; i--) {
+            if (fileName.charAt(i) == '.') {
+                sepPoint = i;
+                break;
+            }
+        }
+
+        String name = fileName.substring(0, sepPoint);
+        String ext = sepPoint == fileName.length() ? "" : fileName.substring(sepPoint + 1, fileName.length());
+
+        return new String[]{name, ext};
     }
 
     public static final String nextSystemFileName(final String original, final Path exportPath) {
-        String[] tokens = NameValidator.splitNameAndExtension(original);
+        String[] tokens = splitNameAndExtension(original);
         Path filePath = Paths.get(exportPath.toString() + "/" + original);
         int count = 1;
-        
+
         while (Files.exists(filePath)) {
             filePath = Paths.get(exportPath.toString() + "/" + tokens[0] + "(" + String.valueOf(count) + ")." + tokens[1]);
             count++;
         }
-        
+
         return count == Integer.MAX_VALUE ? null : filePath.toFile().getName();
     }
-    
+
     public static final String nextSystemFolderName(final String original, final Path exportPath) {
         String newName = "";
         int count = 1;
-        
+
         do {
             newName = original + "(" + String.valueOf(count + ")");
             count++;
         } while (Files.exists(Paths.get(exportPath.toString() + "/" + newName)) && count < Integer.MAX_VALUE);
-        
+
         return count == Integer.MAX_VALUE ? null : newName;
     }
-    
+
     public static final String nextFolderName(final String original, final Folder dir) {
         String newName = null;
         int count = 1;
-        
+
         do {
             newName = original + "(" + String.valueOf(count) + ")";
             count++;
@@ -98,11 +117,7 @@ public class NameUtilities {
 
         return count == Integer.MAX_VALUE ? null : newName;
     }
-    
-        /**
-     * Generates a random file name
-     * @return a randomly generated file
-     */
+
     public static final String generateRandomFileName() {
         Random random = new Random();
         int length = random.nextInt(10, 20);
@@ -120,15 +135,15 @@ public class NameUtilities {
 
         return result;
     }
-    
+
     public static final void renameItem(FileSystemItem item) {
         var dialog = new RenameDialog(Main.frameInstance, true, item);
         int opt = dialog.showDialog();
-        
+
         if (opt == RenameDialog.RENAME_OPTION) {
             item.setName(dialog.getNewName());
         }
-        
+
         Main.reload();
         Main.saveUsers();
     }

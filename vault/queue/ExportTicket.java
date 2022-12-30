@@ -3,8 +3,8 @@ package vault.queue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
-import vault.nfsys.FilePointer;
-import vault.nfsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.Folder;
 
 public class ExportTicket {
     

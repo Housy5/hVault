@@ -1,128 +1,99 @@
 package vault;
 
 import vault.gui.MessageDialog;
-import vault.nfsys.Folder;
-import vault.nfsys.FilePointer;
+import vault.fsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.FileSystem;
 
 public class Clipper {
+
+    private void reset() {
+        item = null;
+        origin = null;
+        type = Type.NONE;
+    }
 
     private static enum Type {
         COPY, CUT, NONE;
     }
 
-    private static Object item;
-    private static Folder origin;
-    private static Type type;
+    private Object item;
+    private Folder origin;
+    private Type type;
+    private final FileSystem fsys;
+
+    public Clipper(FileSystem system) {
+        fsys = system;
+    }
 
     private boolean hasContent() {
         return item != null && type == Type.CUT && origin != null;
     }
-    
+
     private void restore() {
         if (item instanceof FilePointer pointer) {
-            if (origin.containsFile(pointer)) {
-                pointer.setName(NameUtilities.nextFileName(pointer.getName(), origin));
-            }
-            
-            origin.addFile(pointer);
+            origin.addFilePointer(pointer);
         } else if (item instanceof Folder folder) {
-            if (origin.containsFolder(folder)){
-                folder.setName(NameUtilities.nextFolderName(folder.getName(), origin));
-            }
-            
             origin.addFolder(folder);
-            folder.remap(origin);
+            folder.remap();
         }
-        
-        Main.frameInstance.loadFolder(Main.frameInstance.user.fsys.getCurrentFolder());
+        Main.reload();
     }
-    
+
+    private void pasteFilePointer(FilePointer filePointer) {
+        Folder current = fsys.getCurrent();
+
+        if (type == Type.COPY) {
+            FilePointer copy = filePointer.copy();
+            copy.setParent(current);
+            current.addFilePointer(copy);
+        } else if (type == Type.CUT) {
+            filePointer.setParent(current);
+            current.addFilePointer(filePointer);
+            reset();
+        }
+    }
+
+    public void pasteFolder(Folder fol) {
+        Folder current = fsys.getCurrent();
+
+        if (type == Type.COPY) {
+            Folder copy = fol.copy();
+            current.addFolder(copy);
+            copy.setParent(current);
+            copy.remap();
+        } else {
+            current.addFolder(fol);
+            fol.setParent(current);
+            fol.remap();
+        }
+    }
+
     public void paste() {
         if (item == null) {
             return;
         }
 
-        var fsys = Main.frameInstance.user.fsys;
-        
-        if (fsys.getCurrentFolder().isSearchFolder()) {
+        if (fsys.getCurrent().isSearchFolder()) {
             MessageDialog.show(Main.frameInstance, "You are not allowed to paste stuff here " + Constants.ANGRY_FACE);
-            return; 
+            return;
         }
 
         if (item instanceof FilePointer filePointer) {
-            Folder current = fsys.getCurrentFolder();
-            String newName = null;
-            
-            if (current.containsFileName(filePointer.getName())) {
-                newName = NameUtilities.nextFileName(filePointer.getName(), current);
-                
-                if (newName == null) {
-                    MessageDialog.show(Main.frameInstance, "We couldn't paste the that file over here " + Constants.ANGRY_FACE);
-                    return;
-                }
-            }
-            
-            if (type == Type.COPY) {
-                FilePointer copy = filePointer.copy();
-                if (newName != null) {
-                    copy.setName(newName);
-                }
-                copy.setParent(current);
-                current.addFile(copy);
-            } else if (type == Type.CUT) {
-                if (newName != null) {
-                    filePointer.setName(newName);
-                }
-                filePointer.setParent(current);
-                current.addFile(filePointer);
-            }
-            Main.frameInstance.loadFolder(fsys.getCurrentFolder());
+            pasteFilePointer(filePointer);
         } else if (item instanceof Folder fol) {
-            Folder current = fsys.getCurrentFolder();
-            String newName = null;
-            if (current.containsFolderName(fol.getName())) {
-                newName = NameUtilities.nextFolderName(fol.getName(), current);
-
-                if (newName == null) {
-                    MessageDialog.show(Main.frameInstance, "We couldn't paste that folder over here " + Constants.ANGRY_FACE);
-                    return;
-                }
-            }
-
-            if (type == Type.COPY) {
-                Folder copy = fol.copy(); 
-                if (newName != null){
-                    copy.setName(newName);
-                }
-                current.addFolder(copy);
-                copy.setParent(current);
-                copy.remap(current);
-            } else {
-                if (newName != null) {
-                    fol.setName(newName);
-                }
-                current.addFolder(fol);
-                fol.setParent(current);
-                fol.remap(current);                
-            }
-
-            Main.frameInstance.loadFolder(current);
+            pasteFolder(fol);
         }
 
+        Main.reload();
         Main.saveUsers();
-
-        if (type == Type.CUT) {
-            item = null;
-            origin = null;
-            type = Type.NONE;
-        }
     }
 
     public void copy(Object obj) {
         if (hasContent()) {
             restore();
         }
-        
+
         type = Type.COPY;
         if (obj instanceof Folder fol) {
             item = fol;
@@ -135,16 +106,15 @@ public class Clipper {
         if (hasContent()) {
             restore();
         }
-        
+
         type = Type.CUT;
-        
+
         if (obj instanceof FilePointer fp) {
-            objOrigin.removeFilePointer(fp, false);
-            Main.frameInstance.loadFolder(objOrigin);
+            objOrigin.removeFilePointer(fp);
         } else if (obj instanceof Folder fol) {
-            objOrigin.removeFolderReference(fol);
-            Main.frameInstance.loadFolder(objOrigin);
+            objOrigin.removeFolder(fol);
         }
+        Main.reload();
         item = obj;
         origin = objOrigin;
     }

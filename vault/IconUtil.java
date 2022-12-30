@@ -10,8 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
-import vault.encrypt.Encryptor;
-import vault.nfsys.FilePointer;
+import vault.fsys.FilePointer;
 
 public final class IconUtil {
 
@@ -33,7 +32,7 @@ public final class IconUtil {
     }
 
     public final BufferedImage getImage(FilePointer pointer) throws IOException {
-        var bytes = Encryptor.decode(pointer.getBytes());
+        var bytes = pointer.getContent();
         var bytesInput = new ByteArrayInputStream(bytes);
         return ImageIO.read(bytesInput);
     }

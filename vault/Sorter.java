@@ -4,11 +4,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import vault.format.FormatDetector;
-import vault.nfsys.FilePointer;
-import vault.nfsys.FileSystem;
-import vault.nfsys.FileSystemItem;
-import vault.nfsys.Folder;
+import java.util.function.Predicate;
+import vault.fsys.FileFormat;
+import vault.fsys.FilePointer;
+import vault.fsys.FileSystem;
+import vault.fsys.FileSystemItem;
+import vault.fsys.Folder;
 
 public class Sorter {
 
@@ -57,6 +58,10 @@ public class Sorter {
 
     }
 
+    private Exception IllegalArgumentException() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
     public static enum Type {
         AZ, ZA, NEWEST, OLDEST, IMAGES_FIRST, AUDIO_FIRST, DOCUMENTS_FIRST, VIDEOS_FIRST, BIGGEST, SMALLEST;
 
@@ -97,7 +102,7 @@ public class Sorter {
 
     private FileSystem fsys;
     private List<FileSystemItem> items;
-    private IndexWheel<Integer> indexWheel;
+    private IndexWheel<FileFormat> indexWheel;
     private Type type;
 
     public Sorter(FileSystem system) {
@@ -106,24 +111,19 @@ public class Sorter {
         items = new ArrayList<>();
         indexWheel = new IndexWheel<>();
 
-        indexWheel.add(FormatDetector.AUDIO);
-        indexWheel.add(FormatDetector.DOCUMENT);
-        indexWheel.add(FormatDetector.IMAGE);
-        indexWheel.add(FormatDetector.VIDEO);
+        indexWheel.add(FileFormat.AUDIO);
+        indexWheel.add(FileFormat.DOCUMENT);
+        indexWheel.add(FileFormat.IMAGE);
+        indexWheel.add(FileFormat.VIDEO);
     }
 
     public List<Object> sort(List<Object> items) {
-        List<Object> folders = new ArrayList<>();
+        List<Object> folders = new ArrayList<>(); 
         List<Object> pointers = new ArrayList<>();
-
-        for (var item : items) {
-            if (item instanceof Folder folder) {
-                folders.add(folder);
-            } else if (item instanceof FilePointer pointer) {
-                pointers.add(pointer);
-            }
-        }
-
+                
+        folders.addAll(items.parallelStream().filter(x -> x instanceof Folder).toList());
+        pointers.addAll(items.parallelStream().filter(x -> x instanceof FilePointer).toList());
+        
         switch (type) {
             case AZ -> {
                 folders = sortAZ(folders, false);
@@ -151,19 +151,19 @@ public class Sorter {
             }
             case IMAGES_FIRST -> {
                 folders = sortAZ(folders, false);
-                pointers = sortByType(pointers, FormatDetector.IMAGE);
+                pointers = sortByType(pointers, FileFormat.IMAGE);
             }
             case AUDIO_FIRST -> {
                 folders = sortAZ(folders, false);
-                pointers = sortByType(pointers, FormatDetector.AUDIO);
+                pointers = sortByType(pointers, FileFormat.AUDIO);
             }
             case DOCUMENTS_FIRST -> {
                 folders = sortAZ(folders, false);
-                pointers = sortByType(pointers, FormatDetector.DOCUMENT);
+                pointers = sortByType(pointers, FileFormat.DOCUMENT);
             }
             case VIDEOS_FIRST -> {
                 folders = sortAZ(folders, false);
-                pointers = sortByType(pointers, FormatDetector.VIDEO);
+                pointers = sortByType(pointers, FileFormat.VIDEO);
             }
         }
 
@@ -210,29 +210,24 @@ public class Sorter {
         return items;
     }
 
-    public List<Object> sortByType(List<Object> items, int type) {
-        List<Object> audio = new ArrayList<>(), documents = new ArrayList<>(), images = new ArrayList<>(), videos = new ArrayList<>(), others = new ArrayList<>();
-        FormatDetector fm = FormatDetector.instance();
-
+    public List<Object> sortByType(List<Object> items, FileFormat type) {
+        List<Object> audio, documents, images, videos, others; 
+        audio = documents = images = videos = others = new ArrayList<>();
+        
         for (var item : items) {
-            if (item instanceof FilePointer pointer) {
-                switch (fm.detectFormat(pointer.getName())) {
-                    case FormatDetector.AUDIO ->
-                        audio.add(pointer);
-                    case FormatDetector.DOCUMENT ->
-                        documents.add(pointer);
-                    case FormatDetector.IMAGE ->
-                        images.add(pointer);
-                    case FormatDetector.VIDEO ->
-                        videos.add(pointer);
-                    case FormatDetector.OTHER ->
-                        others.add(pointer);
-                    default ->
-                        throw new IllegalStateException("How did you get here!?");
-                }
-            } else {
-                throw new UnsupportedOperationException();
-            }
+            if (!(item instanceof FilePointer))
+                throw new IllegalArgumentException("This function expects type FilePointer");
+            var pointer = (FilePointer) item;
+            if (pointer.isAudio())
+                audio.add(pointer);
+            else if (pointer.isDocument())
+                documents.add(pointer);
+            else if (pointer.isImage())
+                images.add(item);
+            else if (pointer.isVideo())
+                videos.add(pointer);
+            else
+                others.add(pointer);
         }
 
         sortAZ(audio, false);
@@ -246,19 +241,20 @@ public class Sorter {
         List<Object> result = new ArrayList<>();
         for (int i = 0; i < indexWheel.size(); i++) {
             switch (indexWheel.valueAt(i)) {
-                case FormatDetector.AUDIO ->
+                case AUDIO ->
                     result.addAll(audio);
-                case FormatDetector.DOCUMENT ->
+                case DOCUMENT ->
                     result.addAll(documents);
-                case FormatDetector.IMAGE ->
+                case IMAGE ->
                     result.addAll(images);
-                case FormatDetector.VIDEO ->
+                case VIDEO ->
                     result.addAll(videos);
                 default ->
                     throw new IllegalArgumentException();
             }
         }
-
+        result.addAll(others);
+        
         return result;
     }
 }

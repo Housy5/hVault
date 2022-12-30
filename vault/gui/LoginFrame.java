@@ -305,9 +305,7 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
 
         if (Main.users.containsKey(username)) {
             var user = Main.users.get(username);
-            var hash = Constants.messageDigest.digest(Main.mixPassAndSalt(password, user.salt).getBytes());
-
-            if (Arrays.equals(hash, user.hash)) {
+            if (user.getPassword().unlock(password)) {
                 rotateWheel(user);
             } else {
                 MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
@@ -323,19 +321,28 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
         EventQueue.invokeLater(() -> frame.setVisible(true));
         Main.frameInstance = frame;
         frame.initTimer();
-        Export.startIOMonitor(frame);
-        frame.loadFolder(user.fsys.getRoot());
+        Export.startIOMonitor();
+        frame.loadFolder(user.getFileSystem().getRoot());
         dispose();
 
-        if (user.showStartUpMsg) {
-            var startUpMsg = new StartUpMessage(this, true);
-            startUpMsg.setVisible(true);
+        if (user.showStartUpMessage()) {
+            Runnable runnable = new Runnable() {
+                public void run() {
+                    var startUpMsg = new StartUpMessage(frame, true);
+                    startUpMsg.setVisible(true);
+                }
+            };
+            EventQueue.invokeLater(runnable);
         }
 
-        if (user.showWelcomeMsg) {
-            new WelcomeScreen();
+        if (user.showWelcomeMessage()) {
+            Runnable runnable = new Runnable() {
+                public void run() {
+                    new WelcomeScreen();
+                }
+            };
+            EventQueue.invokeLater(runnable);
         }
-
     }
 
     private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased

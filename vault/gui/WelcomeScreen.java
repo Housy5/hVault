@@ -56,7 +56,7 @@ public class WelcomeScreen {
         image.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 36));
         image.setOpaque(false);
         image.setSize(600, 600);
-        image.setText("<html>Welcome, <strong>" + Main.frameInstance.user.username + "</strong>!");
+        image.setText("<html>Welcome, <strong>" + Main.frameInstance.user.getUsername() + "</strong>!");
         image.setHorizontalTextPosition(JLabel.CENTER);
         image.setVerticalTextPosition(JLabel.BOTTOM);
         frame.add(image);
@@ -76,7 +76,7 @@ public class WelcomeScreen {
                         @Override
                         public void mouseReleased(MouseEvent e) {
                             if (SwingUtilities.isLeftMouseButton(e)) {
-                                Main.frameInstance.user.showWelcomeMsg = false;
+                                Main.frameInstance.user.toggleWelcomeMessage();
                                 Main.saveUsers();
                                 dispose();
                             }

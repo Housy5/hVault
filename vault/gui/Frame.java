@@ -2,18 +2,14 @@ package vault.gui;
 
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.dnd.DnDConstants;
-import java.awt.dnd.DragGestureEvent;
-import java.awt.dnd.DragSource;
-import java.awt.dnd.DropTarget;
-import java.awt.dnd.DropTargetDropEvent;
+import java.awt.datatransfer.*;
+import java.awt.dnd.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
@@ -23,50 +19,52 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.ImageIcon;
-import javax.swing.JFileChooser;
-import javax.swing.SwingUtilities;
-import javax.swing.Timer;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.LineBorder;
-import javax.swing.border.TitledBorder;
-import vault.Clipper;
-import vault.Constants;
-import vault.Export;
-import vault.Main;
-import vault.FileTransferHandler;
-import vault.FolderCursor;
-import vault.IconUtil;
-import vault.NameUtilities;
-import vault.Sorter;
-import vault.Util;
-import vault.format.FormatDetector;
-import vault.queue.ImportQueue;
-import vault.queue.ImportTicket;
+import javax.swing.*;
+import javax.swing.border.*;
+import vault.*;
 import vault.gui.menu.DefaultMenu;
 import vault.gui.selections.SelectionTracker;
 import vault.interfaces.Updatable;
-import vault.nfsys.Folder;
-import vault.nfsys.FilePointer;
-import vault.queue.ExportQueue;
+import vault.fsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.FileSystem;
+import vault.fsys.FileSystemItem;
+import vault.queue.*;
 import vault.user.User;
 
-public final class Frame extends javax.swing.JFrame implements Updatable {
+public final class Frame extends JFrame implements Updatable {
 
     public User user;
     private Timer progressTimer;
 
     private final SelectionTracker selectionTracker;
-    private final Sorter sorter;
-    private final FolderCursor folderCursor;
-    private final Clipper clipper;
+    private Sorter sorter;
+    private FolderCursor folderCursor;
+    private Clipper clipper;
+    private FileSystem fsys;
     private long finishImportTime = 0L;
 
-    private final int maxTitleLength = 50;
     private Color progressLblColor = Color.BLACK;
 
     private Rectangle selectionRect = null;
     private Point startPoint;
+
+    private List<Tile> tiles;
+
+    private void initFileSystem() {
+        fsys = user.getFileSystem();
+        fsys.moveTo(fsys.getRoot());
+    }
+
+    private void initFolderCursor() {
+        folderCursor = new FolderCursor(fsys);
+        folderCursor.push(fsys.getCurrent());
+    }
+
+    private void initClipperAndSorter() {
+        sorter = new Sorter(fsys);
+        clipper = new Clipper(fsys);
+    }
 
     public Frame(User user) {
         initComponents();
@@ -74,18 +72,11 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
         setLocationRelativeTo(null);
 
         selectionTracker = new SelectionTracker();
-        setTitle(user.username + "'s  Vault!");
+        setTitle(user.getUsername() + "'s  Vault!");
 
-        user.fsys.indexFileIDs();
-        user.fsys.validateFiles();
-        Main.saveUsers();
-        user.fsys.cd(user.fsys.getRoot());
-
-        folderCursor = new FolderCursor(user.fsys);
-        folderCursor.push(user.fsys.getCurrentFolder());
-
-        sorter = new Sorter(user.fsys);
-        clipper = new Clipper();
+        initFileSystem();
+        initFolderCursor();
+        initClipperAndSorter();
 
         addDropTarget();
         initIcon();
@@ -93,29 +84,42 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
 
     @Override
     public void update() {
-        try {
-            Properties p = Main.getUIProperties();
-            var primaryBorder = (TitledBorder) jPanel1.getBorder();
-            var line = new LineBorder((Color) p.get("primary.color"), 1, true);
-            primaryBorder.setBorder(line);
+        Runnable runnable = () -> {
+            try {
+                Properties p = Main.getUIProperties();
+                var primaryBorder = (TitledBorder) jPanel1.getBorder();
+                var line = new LineBorder((Color) p.get("primary.color"), 1, true);
+                primaryBorder.setBorder(line);
+                var border = (CompoundBorder) jPanel3.getBorder();
+                var outside = border.getOutsideBorder();
+                var inside = new LineBorder((Color) p.get("secondary.color"), 1, true);
+                jPanel3.setBorder(new CompoundBorder(outside, inside));
+                jSeparator1.setForeground((Color) p.get("secondary.color"));
+                jSeparator2.setForeground((Color) p.get("secondary.color"));
+                progressLblColor = (Color) p.get("primary.color");
+                modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
+                Arrays.stream(jPanel1.getComponents()).filter(x1 -> x1 instanceof Updatable).forEach(x2 -> ((Updatable) x2).update());
+                repaint();
+            } catch (IOException ex) {
+                Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
+                MessageDialog.show(null, ex.getMessage());
+            }
+        };
+        EventQueue.invokeLater(runnable);
+    }
 
-            var border = (CompoundBorder) jPanel3.getBorder();
-            var outside = border.getOutsideBorder();
-            var inside = new LineBorder((Color) p.get("secondary.color"), 1, true);
-            jPanel3.setBorder(new CompoundBorder(outside, inside));
+    private void switchCursorTo(Cursor cursor) {
+        if (getCursor().equals(cursor))
+            return;
+        this.setCursor(cursor);
+    }
 
-            jSeparator1.setForeground((Color) p.get("secondary.color"));
-            jSeparator2.setForeground((Color) p.get("secondary.color"));
+    public void switchToWaitCursor() {
+        switchCursorTo(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+    }
 
-            progressLblColor = (Color) p.get("primary.color");
-
-            modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
-
-            Arrays.stream(jPanel1.getComponents()).filter(x -> x instanceof Updatable).forEach(x -> ((Updatable) x).update());
-        } catch (IOException ex) {
-            Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
-            MessageDialog.show(this, ex.getMessage());
-        }
+    public void switchToDefaultCursor() {
+        switchCursorTo(Cursor.getDefaultCursor());
     }
 
     public void resetSelections() {
@@ -147,11 +151,12 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
             @Override
             public synchronized void drop(DropTargetDropEvent evt) {
                 try {
-                    Folder folder = user.fsys.getCurrentFolder();
+                    Folder folder = fsys.getCurrent();
                     evt.acceptDrop(DnDConstants.ACTION_COPY);
                     if (evt.isDataFlavorSupported(FileTransferHandler.FILE_POINTER_LIST_FLAVOR)) {
                         return;
                     }
+                    @SuppressWarnings("unchecked")
                     List<File> droppedFiles = (List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
                     addFiles(droppedFiles, folder);
                 } catch (UnsupportedFlavorException | IOException ex) {
@@ -193,52 +198,61 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
     }
 
     private void updateSortButtons() {
-        resetSortButtons();
-        switch (sorter.getType()) {
-            case AZ ->
-                azbtn.setText("Z-A");
-            case ZA ->
-                azbtn.setText("A-Z");
-            case BIGGEST ->
-                sizebtn.setText("Size");
-            case SMALLEST ->
-                sizebtn.setText("Size");
-            case NEWEST ->
-                timebtn.setText("Oldest");
-            case OLDEST ->
-                timebtn.setText("Newest");
-            case IMAGES_FIRST ->
-                typebtn.setText("Videos");
-            case VIDEOS_FIRST ->
-                typebtn.setText("Audio");
-            case AUDIO_FIRST ->
-                typebtn.setText("Documents");
-            case DOCUMENTS_FIRST ->
-                typebtn.setText("Images");
-        }
+        Runnable runnable = () -> {
+            resetSortButtons();
+            switch (sorter.getType()) {
+                case AZ ->
+                    azbtn.setText("Z-A");
+                case ZA ->
+                    azbtn.setText("A-Z");
+                case BIGGEST ->
+                    sizebtn.setText("Size");
+                case SMALLEST ->
+                    sizebtn.setText("Size");
+                case NEWEST ->
+                    timebtn.setText("Oldest");
+                case OLDEST ->
+                    timebtn.setText("Newest");
+                case IMAGES_FIRST ->
+                    typebtn.setText("Videos");
+                case VIDEOS_FIRST ->
+                    typebtn.setText("Audio");
+                case AUDIO_FIRST ->
+                    typebtn.setText("Documents");
+                case DOCUMENTS_FIRST ->
+                    typebtn.setText("Images");
+            }
+        };
+        EventQueue.invokeLater(runnable);
+    }
+
+    private void showProgress(String message, Color color) {
+        jLabel1.setText(message);
+        jLabel1.setForeground(color);
+    }
+
+    private void showProgress(String message) {
+        showProgress(message, progressLblColor);
     }
 
     private void updateProgressLabel() {
-        ImportQueue importQueue = ImportQueue.instance();
-        ExportQueue exportQueue = ExportQueue.instance();
-        Color defaultColor = progressLblColor;
+        Runnable runnable = () -> {
+            var importQueue = ImportQueue.instance();
+            var exportQueue = ExportQueue.instance();
 
-        if (importQueue.isImporting() && exportQueue.isExporting()) {
-            jLabel1.setForeground(defaultColor);
-            jLabel1.setText(String.format("Importing: %d files left, Exporting: %d files left.", importQueue.count() + 1, exportQueue.count() + 1));
-        } else if (importQueue.isImporting()) {
-            jLabel1.setForeground(defaultColor);
-            jLabel1.setText(String.format("Importing: %d files left.", importQueue.count() + 1));
-        } else if (exportQueue.isExporting()) {
-            jLabel1.setForeground(defaultColor);
-            jLabel1.setText(String.format("Exporting: %d files left.", exportQueue.count() + 1));
-        } else if (System.currentTimeMillis() - finishImportTime < 3000) {
-            jLabel1.setForeground(new Color(0x87a96b));
-            jLabel1.setText("Success!");
-        } else {
-            jLabel1.setForeground(defaultColor);
-            jLabel1.setText(IDLE_STATE);
-        }
+            if (importQueue.isImporting() && exportQueue.isExporting()) {
+                showProgress(String.format("Importing: %d files left, Exporting: %d files left.", importQueue.count() + 1, exportQueue.count() + 1));
+            } else if (importQueue.isImporting()) {
+                showProgress(String.format("Importing: %d files left.", importQueue.count() + 1));
+            } else if (exportQueue.isExporting()) {
+                showProgress(String.format("Exporting: %d files left.", exportQueue.count() + 1));
+            } else if (System.currentTimeMillis() - finishImportTime < 3000) {
+                showProgress("Success!", new Color(0x87a96b));
+            } else {
+                showProgress(IDLE_STATE);
+            }
+        };
+        EventQueue.invokeLater(runnable);
     }
 
     private String createTitleMessage(String fullname) {
@@ -258,19 +272,15 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
     private void scanThumbNails() {
         Thread t = new Thread(() -> {
             var map = Main.thumbnails;
-            var files = user.fsys.getCurrentFolder().getFiles();
-            var missing = files.stream()
-                    .filter(x -> FormatDetector.instance().detectFormat(x.getName()) == FormatDetector.IMAGE)
-                    .filter(x -> !map.containsKey(x))
-                    .toList();
+            var files = fsys.getCurrent().getPointers();
+            var missing = files.parallelStream().filter(FilePointer::isImage).filter(x -> !map.containsKey(x.getName())).toList();
 
             if (!missing.isEmpty()) {
-                missing.forEach(x -> map.putIfAbsent(x, loadThumbNail(x)));
+                missing.forEach(x -> map.putIfAbsent(x.getName(), loadThumbNail(x)));
                 Main.saveThumbNails();
                 Main.reload();
             }
         });
-
         t.start();
     }
 
@@ -285,53 +295,75 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
         }
     }
 
-    /**
-     * Loads the specified folder to the screen.
-     *
-     * @param folder
-     */
-    public void loadFolder(Folder folder) {
-        if (folder.isLocked() && !(folder.equals(user.fsys.getCurrentFolder()) || folder.equals(user.fsys.getCurrentFolder().getParent()))) {
-            int result = Util.requestFolderPassword(folder);
-            if (result == Util.PASSWORD_DENIED) {
-                MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
-                return;
-            } else if (result == Util.CANCEL) {
-                return;
-            }
-        }
+    private void clearAllTiles() {
+        Arrays.stream(display.getComponents()).parallel().filter(x -> x instanceof Tile).forEach(x -> display.remove(x));
+    }
 
-        user.fsys.cd(folder);
-        DragSource dragSource = new DragSource();
-        String titleMsg = createTitleMessage(NameUtilities.reformatFullFolderName(folder.getFullName()));
+    private boolean checkForPassword(Folder folder) {
+        if (!folder.isLocked() || (folder.equals(fsys.getCurrent()) || folder.equals(fsys.getCurrent().getParent())))
+            return true;
+        int result = Util.requestFolderPassword(folder);
+        if (result == Util.PASSWORD_DENIED) {
+            MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
+            return false;
+        } else if (result == Util.CANCEL) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private void addFolder(Folder folder) {
+        display.add(new Tile(folder));
+    }
+
+    private void addFilePointer(FilePointer pointer) {
+        var tile = new Tile(pointer);
+        var dragSource = new DragSource();
+        dragSource.createDefaultDragGestureRecognizer(tile, DnDConstants.ACTION_MOVE, (DragGestureEvent e) -> {
+            var cursor = Cursor.getDefaultCursor();
+            if (e.getDragAction() == DnDConstants.ACTION_MOVE) {
+                cursor = DragSource.DefaultMoveDrop;
+            }
+            e.startDrag(cursor, createTransferable(pointer));
+        });
+        display.add(tile);
+    }
+
+    private void addFileSystemItem(FileSystemItem item) {
+        if (item instanceof Folder folder)
+            addFolder(folder);
+        else if (item instanceof FilePointer pointer)
+            addFilePointer(pointer);
+    }
+
+    private void updateTitle(Folder folder) {
+        String titleMsg = createTitleMessage(NameUtilities.reformatFullFolderName(folder.getPath()));
         ((TitledBorder) jPanel1.getBorder()).setTitle(titleMsg);
+    }
 
-        Arrays.stream(jPanel1.getComponents())
-                .filter(component -> component instanceof Tile)
-                .forEach(component -> jPanel1.remove(component));
-
-        var items = sorter.sort(folder.getAllItems());
-
-        for (var item : items) {
-            if (item instanceof Folder fol) {
-                jPanel1.add(new Tile(fol));
-            } else if (item instanceof FilePointer pointer) {
-                var tile = new Tile(pointer);
-                jPanel1.add(tile);
-                dragSource.createDefaultDragGestureRecognizer(tile, DnDConstants.ACTION_MOVE, (DragGestureEvent e) -> {
-                    var cursor = Cursor.getDefaultCursor();
-                    if (e.getDragAction() == DnDConstants.ACTION_MOVE) {
-                        cursor = DragSource.DefaultMoveDrop;
-                    }
-                    e.startDrag(cursor, createTransferable(pointer));
-                });
-            }
-        }
-
+    private void reval() {
+        tiles = getTiles(true);
         jPanel1.revalidate();
         jPanel1.repaint();
-
         scanThumbNails();
+    }
+
+    public void loadFolder(Folder folder) {
+        Runnable runnable = new Runnable() {
+            public void run() {
+                if (!checkForPassword(folder))
+                    return;
+                fsys.moveTo(folder);
+                clearAllTiles();
+                updateTitle(folder);
+
+                var items = sorter.sort(folder.getAllItems());
+                items.stream().map(x -> (FileSystemItem) x).forEach(x -> addFileSystemItem(x));
+                reval();
+            }
+        };
+        EventQueue.invokeLater(runnable);
     }
 
     public Clipper getClipper() {
@@ -340,17 +372,9 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
 
     private Transferable createTransferable(FilePointer pointer) {
         List<FilePointer> selectedFiles = new ArrayList<>();
+        selectedFiles.addAll(getTiles(false).parallelStream().filter(x -> x.isSelected() && x.isFile()).map(Tile::getFile).toList());
         selectedFiles.add(pointer);
-
-        for (var comp : jPanel1.getComponents()) {
-            if (comp instanceof Tile tile) {
-                if (tile.isSelected() && tile.type == Tile.FileType.FILE && !selectedFiles.contains(tile.file)) {
-                    selectedFiles.add(tile.file);
-                }
-            }
-        }
-
-        return new FileTransferHandler(selectedFiles, user.fsys.getCurrentFolder());
+        return new FileTransferHandler(selectedFiles, user.getFileSystem().getCurrent());
     }
 
     @SuppressWarnings("unchecked")
@@ -358,6 +382,8 @@ public final class Frame extends javax.swing.JFrame implements Updatable {
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        display = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
@@ -398,9 +424,20 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             jPanel1MouseReleased(evt);
         }
     });
+    jPanel1.setLayout(new java.awt.CardLayout());
+
+    jScrollPane2.setBorder(null);
+    jScrollPane2.setViewportView(display);
+
+    display.setFocusable(false);
+    display.setMaximumSize(new Dimension(jScrollPane2.getWidth(), 32767));
     java.awt.FlowLayout flowLayout1 = new java.awt.FlowLayout(java.awt.FlowLayout.LEADING);
     flowLayout1.setAlignOnBaseline(true);
-    jPanel1.setLayout(flowLayout1);
+    display.setLayout(flowLayout1);
+    jScrollPane2.setViewportView(display);
+
+    jPanel1.add(jScrollPane2, "card2");
+
     getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
     jPanel2.setDoubleBuffered(false);
@@ -504,12 +541,6 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    /**
-     * Adds the specified files to the specified folder
-     *
-     * @param f The file to be imported
-     * @param folder The destination folder
-     */
     public void addFiles(List<File> f, Folder folder) {
         ImportQueue queue = ImportQueue.instance();
         f.forEach(x -> queue.addTicket(new ImportTicket(x, folder)));
@@ -523,7 +554,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
         chooser.showOpenDialog(jPanel1);
 
         var file = chooser.getSelectedFile();
-        var folder = user.fsys.getCurrentFolder();
+        var folder = user.getFileSystem().getCurrent();
 
         if (file != null) {
             addFiles(List.of(file), folder);
@@ -540,18 +571,16 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
         jPanel1.repaint();
     }
 
-    private List<Tile> getTiles() {
-        List<Tile> tiles = new ArrayList<>();
-        for (var c : jPanel1.getComponents()) {
-            if (c instanceof Tile tile) {
-                tiles.add(tile);
-            }
+    private List<Tile> getTiles(boolean update) {
+        if (update) {
+            return Arrays.stream(jPanel1.getComponents()).filter(x -> x instanceof Tile).map(x -> (Tile) x).toList();
         }
         return tiles;
     }
+
     private void jPanel1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseReleased
         if (SwingUtilities.isRightMouseButton(evt)) {
-            if (!user.fsys.getCurrentFolder().isSearchFolder()) {
+            if (!user.getFileSystem().getCurrent().isSearchFolder()) {
                 var menu = new DefaultMenu(this, user);
                 menu.show(jPanel1, evt.getX(), evt.getY());
             }
@@ -561,7 +590,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }//GEN-LAST:event_jPanel1MouseReleased
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-        if (!Export.exportTasks.isEmpty() || !Export.importTasks.isEmpty() || ImportQueue.instance().isImporting() || ExportQueue.instance().isExporting()) {
+        if (ImportQueue.instance().isImporting() || ExportQueue.instance().isExporting()) {
             MessageDialog.show(this, "You can't exit the program while importing or exporting files!");
         } else {
             System.exit(0);
@@ -619,14 +648,19 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     private void typebtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_typebtnActionPerformed
         var type = sorter.getType();
 
-        if (type == Sorter.Type.IMAGES_FIRST) {
-            sorter.setType(Sorter.Type.VIDEOS_FIRST);
-        } else if (type == Sorter.Type.VIDEOS_FIRST) {
-            sorter.setType(Sorter.Type.AUDIO_FIRST);
-        } else if (type == Sorter.Type.AUDIO_FIRST) {
-            sorter.setType(Sorter.Type.DOCUMENTS_FIRST);
-        } else {
+        if (null == type) {
             sorter.setType(Sorter.Type.IMAGES_FIRST);
+        } else {
+            switch (type) {
+                case IMAGES_FIRST ->
+                    sorter.setType(Sorter.Type.VIDEOS_FIRST);
+                case VIDEOS_FIRST ->
+                    sorter.setType(Sorter.Type.AUDIO_FIRST);
+                case AUDIO_FIRST ->
+                    sorter.setType(Sorter.Type.DOCUMENTS_FIRST);
+                default ->
+                    sorter.setType(Sorter.Type.IMAGES_FIRST);
+            }
         }
 
         Main.reload();
@@ -637,10 +671,6 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             Main.toggleUIMode(this);
         }
     }//GEN-LAST:event_modelblMouseReleased
-
-    private Color invertColor(Color color) {
-        return new Color(255 - color.getRed(), 255 - color.getGreen(), 255 - color.getBlue());
-    }
 
     private void jPanel1MouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseDragged
         if (startPoint == null) {
@@ -659,11 +689,14 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             g.setColor((Color) Main.getUIProperties().get("secondary.color"));
             g.drawRect(x, y, width, height);
 
-            var tiles = getTiles();
+            var tiles = getTiles(false);
             for (Tile tile : tiles) {
                 if (!tile.isSelected() && selectionRect.intersects(tile.toRectangle())) {
                     tile.toggleSelected();
                     track(tile);
+                } else if (tile.isSelected() && !selectionRect.intersects(tile.toRectangle())) {
+                    tile.toggleSelected();
+                    untrack(tile);
                 }
             }
         }
@@ -677,6 +710,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton azbtn;
+    private javax.swing.JPanel display;
     private javax.swing.Box.Filler filler1;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
@@ -685,6 +719,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JLabel modelbl;

@@ -16,9 +16,7 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -28,12 +26,12 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import vault.fsys.Folder;
+import vault.gui.CursorType;
 import vault.gui.Frame;
 import vault.gui.LoginFrame;
 import vault.gui.MessageDialog;
 import vault.interfaces.Updatable;
-import vault.nfsys.FilePointer;
-import vault.nfsys.Folder;
 
 import vault.user.User;
 
@@ -43,51 +41,49 @@ public class Main {
     public static Image icon = null;
     public static Main instance;
     public static Map<String, User> users;
-    public static Map<FilePointer, ImageIcon> thumbnails;
-    public static Properties uiProperties;
+    public static Map<String, ImageIcon> thumbnails;
+    public static volatile Properties uiProperties;
     public static Font notoEmojiFont;
-    
-    private static UIMode uimode;
-    
+
+    private static volatile UIMode uimode;
+
     static {
         initUIMode();
-        
-        try {
-            if (uimode == UIMode.DARK) {
-                UIManager.setLookAndFeel(new FlatDarkLaf());
-            } else if (uimode == UIMode.LIGHT) {
-                UIManager.setLookAndFeel(new FlatLightLaf());
-            }
-        } catch (UnsupportedLookAndFeelException e) {
-            MessageDialog.show(null, e.getMessage());
-            e.printStackTrace();
-        }
-
+        initLaf();
         loadUsers();
+        initUsers();
         loadThumbNails();
-        scanThumbNails();
     }
-    
+
     public static UIMode getUIMode() {
-       return uimode;
+        return uimode;
     }
 
-    public static void toggleUIMode(JFrame currentFrame) {
-        uimode = switch (uimode) {
-            case DARK -> UIMode.LIGHT;
-            case LIGHT -> UIMode.DARK;
-        };
-
-        saveUIMode();
-        updateUIManager();
-        initUIProperties();
-        SwingUtilities.updateComponentTreeUI(currentFrame);
-        
-        if (currentFrame instanceof Updatable updatable) {
-            updatable.update();
-        }
+    public static Folder getCurrentFolder() {
+        return frameInstance.user.getFileSystem().getCurrent();
     }
     
+    public static void toggleUIMode(JFrame currentFrame) {
+        Runnable runnable = () -> {
+            uimode = switch (uimode) {
+                case DARK ->
+                    UIMode.LIGHT;
+                case LIGHT ->
+                    UIMode.DARK;
+            };
+
+            saveUIMode();
+            updateUIManager();
+            initUIProperties();
+            SwingUtilities.updateComponentTreeUI(currentFrame);
+
+            if (currentFrame instanceof Updatable updatable) {
+                updatable.update();
+            }
+        };
+        EventQueue.invokeLater(runnable);
+    }
+
     public static void updateUIManager() {
         if (uimode == UIMode.DARK) {
             try {
@@ -104,11 +100,18 @@ public class Main {
             }
         }
     }
+
+    public static void changeCursor(CursorType type) {
+        switch (type) {
+            case DEFAULT -> frameInstance.switchToDefaultCursor();
+            case WAIT -> frameInstance.switchToWaitCursor();
+        }
+    }
     
     public static Properties getUIProperties() {
         return uiProperties;
     }
-    
+
     private static void initUIMode() {
         try {
             uimode = loadUIMode();
@@ -116,13 +119,13 @@ public class Main {
             uimode = Constants.DEFAULT_UIMODE;
             saveUIMode();
         }
-        
+
         initUIProperties();
     }
 
     private static void initUIProperties() {
         uiProperties = new Properties();
-        switch(uimode) {
+        switch (uimode) {
             case DARK -> {
                 uiProperties.put("primary.color", new Color(0xA49580));
                 uiProperties.put("secondary.color", new Color(0x808fa4));
@@ -133,7 +136,7 @@ public class Main {
             }
         }
     }
-    
+
     private static void saveUIMode() {
         Path path = Constants.UIMODE_FILE.toPath();
         try {
@@ -143,7 +146,7 @@ public class Main {
             MessageDialog.show(null, ex.getMessage());
         }
     }
-    
+
     private static UIMode loadUIMode() throws IOException {
         Path path = Constants.UIMODE_FILE.toPath();
         if (Files.exists(path)) {
@@ -152,39 +155,31 @@ public class Main {
             throw new IOException();
         }
     }
-    
-    public static Map<FilePointer, ImageIcon> getThumbNails() {
+
+    public static Map<String, ImageIcon> getThumbNails() {
         return thumbnails;
     }
-    
+
     public static void reload() {
-        frameInstance.loadFolder(frameInstance.user.fsys.getCurrentFolder());
+        frameInstance.loadFolder(frameInstance.user.getFileSystem().getCurrent());
     }
-    
-    /**
-     * Generates an unique salt.
-     *
-     * @return returns the generated salt.
-     */
+
     public static String generateSalt() {
         var random = new SecureRandom();
         var sb = new StringBuilder();
         var min = 33; // ASCII '!'
         var max = 127; // ASCII 'DEL'
 
-        do {
-            sb.setLength(0);
-            var length = random.nextInt(10, 100);
+        sb.setLength(0);
+        var length = random.nextInt(10, 100);
 
-            for (var i = 0; i < length; i++) {
-                sb.append((char) random.nextInt(min, max));
-            }
-        } while (!isUniqueSalt(sb.toString()));
+        for (var i = 0; i < length; i++) {
+            sb.append((char) random.nextInt(min, max));
+        }
         return sb.toString();
     }
 
     public static void main(String[] args) throws IOException {
-        System.out.println("");
         if (SessionLedger.attemptStart()) {
             Garbage.start();
             var lf = new LoginFrame();
@@ -200,13 +195,6 @@ public class Main {
         }
     }
 
-    /**
-     * Mixes the password and salt together.
-     *
-     * @param password
-     * @param salt
-     * @return The mix of the password and salt.
-     */
     public static String mixPassAndSalt(String password, String salt) {
         var passes = 0;
         var result = password + salt;
@@ -236,55 +224,31 @@ public class Main {
         return result;
     }
 
-    /**
-     * Saves all the users to a file.
-     *
-     * @throws IOException
-     */
     public static void saveUsers() {
-        File f = Constants.SAVE_FILE;
-        try (var out = new ObjectOutputStream(new FileOutputStream(f))){
-            out.writeObject(users);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            MessageDialog.show(null, ex.getMessage());
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            MessageDialog.show(null, ex.getMessage());
-        }
+        serializeUserMap();
+        users.values().parallelStream().forEach(User::save);
     }
 
+    private static void saveUserData() {
+        users.values().forEach(User::save);
+    }
+    
     public static void saveThumbNails() {
         File f = Constants.THUMBNAIL_FILE;
-        try (var out = new ObjectOutputStream(new FileOutputStream(f))) {
+        try ( var out = new ObjectOutputStream(new FileOutputStream(f))) {
             out.writeObject(thumbnails);
+            saveUserData();
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Failed while trying to save the thumbnails", ex);
             MessageDialog.show(null, ex.getMessage());
         }
     }
-    
-    /**
-     * 
-     * 
-     * Checks to see if the salt is already used for an other user.
-     *
-     * @param salt The generated salt.
-     * @return returns true if the generated salt is unique and false if it
-     * already exists.
-     */
-    private static boolean isUniqueSalt(String salt) {
-        return users.values().stream().filter(user -> user.salt.equalsIgnoreCase(salt)).count() == 0;
-    }
 
-    /**
-     * Loads the users from a file
-     */
     private static void loadUsers() {
         File f = Constants.SAVE_FILE;
-        
+
         if (f.exists()) {
-            try (var in = new ObjectInputStream(new FileInputStream(f))){
+            try ( var in = new ObjectInputStream(new FileInputStream(f))) {
                 users = (HashMap<String, User>) in.readObject();
             } catch (FileNotFoundException ex) {
                 users = new HashMap<>();
@@ -296,41 +260,32 @@ public class Main {
         }
     }
     
-    private static List<FilePointer> getFilesFromFolder(Folder folder) {
-        List<FilePointer> files = new ArrayList<>();
-        files.addAll(folder.getFiles());
-        for (var f : folder.getFolders()) {
-            files.addAll(getFilesFromFolder(f));
+    private static void initUsers() {
+        users.values().parallelStream().forEach(User::init);
+    }
+
+    
+    /**
+     * Reset's the thumbnails when the save files exceeds 500mb
+     */
+    static void cleanThumbNails() {
+        if (Constants.THUMBNAIL_FILE.length() > 5_000_000) {
+            Constants.THUMBNAIL_FILE.delete();
+            thumbnails.clear();
         }
-        return files;
     }
     
-    public static List<FilePointer> getAllFiles() {
-        List<FilePointer> files = new ArrayList<>();
-        for (var user : users.values()) {
-            files.addAll(getFilesFromFolder(user.fsys.getRoot()));
-        }
-        return files;
-    }
-    
-    public static void scanThumbNails() {
-        List<FilePointer> files = getAllFiles();
-        List<FilePointer> removal = new ArrayList<>();
-        for (var pointer : thumbnails.keySet()) {
-            if (!files.contains(pointer)) {
-                removal.add(pointer);
-            }
-        }
-        removal.forEach(x -> thumbnails.remove(x));
-        Main.saveThumbNails();
+    public static void removeThumbNail(String key) {
+        thumbnails.remove(key);
+        saveThumbNails();
     }
     
     public static void loadThumbNails() {
         File f = Constants.THUMBNAIL_FILE;
-        
+
         if (f.exists()) {
-            try (var in = new ObjectInputStream(new FileInputStream(f))) {
-                thumbnails = (HashMap<FilePointer, ImageIcon>) in.readObject();
+            try ( var in = new ObjectInputStream(new FileInputStream(f))) {
+                thumbnails = (HashMap<String, ImageIcon>) in.readObject();
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
                 MessageDialog.show(null, ex.getMessage());
@@ -344,5 +299,31 @@ public class Main {
     }
 
     private Main() {
+    }
+
+    private static void initLaf() {
+        try {
+            if (uimode == UIMode.DARK) {
+                UIManager.setLookAndFeel(new FlatDarkLaf());
+            } else if (uimode == UIMode.LIGHT) {
+                UIManager.setLookAndFeel(new FlatLightLaf());
+            }
+        } catch (UnsupportedLookAndFeelException e) {
+            MessageDialog.show(null, e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void serializeUserMap() {
+        File f = Constants.SAVE_FILE;
+        try ( var out = new ObjectOutputStream(new FileOutputStream(f))) {
+            out.writeObject(users);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            MessageDialog.show(null, ex.getMessage());
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            MessageDialog.show(null, ex.getMessage());
+        }
     }
 }

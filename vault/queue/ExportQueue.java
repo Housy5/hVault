@@ -9,10 +9,9 @@ import java.util.List;
 import java.util.Queue;
 import vault.Main;
 import vault.NameUtilities;
-import vault.encrypt.Encryptor;
 import vault.gui.MessageDialog;
-import vault.nfsys.FilePointer;
-import vault.nfsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.Folder;
 
 public class ExportQueue implements Runnable {
 
@@ -82,7 +81,7 @@ public class ExportQueue implements Runnable {
 
         try {
             Files.createFile(exportFile);
-            Files.write(exportFile, Encryptor.decode(pointer.getBytes()));
+            Files.write(exportFile, pointer.getContent());
         } catch (IOException e) {
             errorMessage(fileName);
             return;
@@ -114,8 +113,8 @@ public class ExportQueue implements Runnable {
         }
         
         final Path dir = newDirectory;
-        folder.getFiles().forEach(file -> tickets.add(new ExportTicket(file, dir)));
-        folder.getFolders().forEach(fol -> tickets.add(new ExportTicket(fol, dir)));
+        folder.getPointers().forEach(file -> tickets.add(new ExportTicket(file, dir)));
+        folder.getSubFolders().forEach(fol -> tickets.add(new ExportTicket(fol, dir)));
     }
 
     private void handleTicket(ExportTicket ticket) {

@@ -1,7 +1,7 @@
 package vault;
 
-import vault.nfsys.FileSystem;
-import vault.nfsys.Folder;
+import vault.fsys.FileSystem;
+import vault.fsys.Folder;
 
 public class FolderCursor {
     
@@ -38,7 +38,7 @@ public class FolderCursor {
     }
     
     private Node createDefaultNode() {
-        Node node = new Node(fsys.getCurrentFolder());
+        Node node = new Node(fsys.getCurrent());
         return node;
     }
     
@@ -140,11 +140,11 @@ public class FolderCursor {
              cursor = 1;
              return fsys.getRoot();
          } else {
-             return fsys.getCurrentFolder().getParent();
+             return fsys.getCurrent().getParent();
          }
     }
 
     private boolean isValidFolder(Folder folder) {
-        return fsys.getCurrentFolder().containsFolder(folder);
+        return fsys.getCurrent().containsFolderName(folder.getName());
     }
 }

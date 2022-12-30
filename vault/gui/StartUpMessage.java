@@ -110,7 +110,7 @@ public class StartUpMessage extends javax.swing.JDialog {
     }//GEN-LAST:event_jButton2KeyReleased
 
     public void disposeAndDisable() {
-        Main.frameInstance.user.showStartUpMsg = false;
+        Main.frameInstance.user.toggleStartUpMessage();
         Main.saveUsers();
         dispose();
     }

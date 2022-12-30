@@ -29,17 +29,16 @@ import javax.swing.SwingUtilities;
 import vault.Constants;
 import vault.Export;
 import vault.Main;
-import vault.nfsys.Folder;
-import vault.nfsys.FilePointer;
-import vault.nfsys.FileSystem;
+import vault.fsys.Folder;
+import vault.fsys.FilePointer;
+import vault.fsys.FileSystem;
 import static vault.Main.frameInstance;
-import vault.nfsys.FolderBuilder;
 import vault.FileTransferHandler;
 import vault.IconUtil;
 import vault.NameUtilities;
 import vault.TransferData;
 import vault.Util;
-import vault.format.FormatDetector;
+import vault.fsys.FileSystemItem;
 import vault.interfaces.Updatable;
 import vault.password.Password;
 
@@ -81,7 +80,7 @@ public class Tile extends JPanel implements Updatable {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     var tiles = frameInstance.getSelectedTiles();
-                    List<Object> objs = new ArrayList<>();
+                    List<FileSystemItem> objs = new ArrayList<>();
                     tiles.forEach(tile -> {
                         if (tile.isFile()) {
                             objs.add(tile.file);
@@ -89,7 +88,7 @@ public class Tile extends JPanel implements Updatable {
                             objs.add(tile.folder);
                         }
                     });
-                    Export.exportAllV2(objs);
+                    Export.exportAll(objs);
                 }
             });
 
@@ -98,12 +97,12 @@ public class Tile extends JPanel implements Updatable {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     var tiles = frameInstance.getSelectedTiles();
-                    var fsys = frameInstance.user.fsys;
+                    var fsys = frameInstance.user.getFileSystem();
 
-                    tiles.stream().filter(x -> x.isFile()).forEach(x -> fsys.removeFile(x.file));
+                    tiles.stream().filter(x -> x.isFile()).forEach(x -> fsys.removeFilePointer(x.file));
                     tiles.stream().filter(x -> x.isFolder()).forEach(x -> fsys.removeFolder(x.folder));
 
-                    frameInstance.loadFolder(fsys.getCurrentFolder());
+                    Main.reload();
                     Main.saveUsers();
                 }
             });
@@ -160,7 +159,7 @@ public class Tile extends JPanel implements Updatable {
                                 deleteFile();
                             }
                             case FOLDER -> {
-                                FileSystem fsys = frameInstance.user.fsys;
+                                FileSystem fsys = frameInstance.user.getFileSystem();
 
                                 if (folder.isLocked()) {
                                     int x = Util.requestFolderPassword(folder);
@@ -182,7 +181,7 @@ public class Tile extends JPanel implements Updatable {
                     Runnable runnable = new Runnable() {
                         public void run() {
                             fsys.removeFolder(folder);
-                            frameInstance.loadFolder(fsys.getCurrentFolder());
+                            frameInstance.loadFolder(fsys.getCurrent());
                             Main.saveUsers();
                         }
                     };
@@ -193,14 +192,17 @@ public class Tile extends JPanel implements Updatable {
                 private void deleteFile() {
                     Runnable runnable = new Runnable() {
                         public void run() {
-                            FileSystem fsys = frameInstance.user.fsys;
-                            fsys.removeFile(file);
+                            FileSystem fsys = frameInstance.user.getFileSystem();
+                            fsys.deleteFilePointer(file);
                             
-                            if (fsys.getCurrentFolder().isSearchFolder()) {
-                                fsys.getCurrentFolder().removeFilePointer(file);
+                            if (fsys.getCurrent().isSearchFolder()) {
+                                fsys.getCurrent().removeFilePointer(file);
                             }
                             
-                            frameInstance.loadFolder(fsys.getCurrentFolder());
+                            if (file.isImage())
+                                Main.removeThumbNail(file.getName());
+                            
+                            Main.reload();
                             Main.saveUsers();
                         }
                     };
@@ -215,18 +217,18 @@ public class Tile extends JPanel implements Updatable {
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
                         if (type == FileType.FILE) {
-                            frameInstance.getClipper().cut(file, frameInstance.user.fsys.getCurrentFolder());
+                            frameInstance.getClipper().cut(file, frameInstance.user.getFileSystem().getCurrent());
                         } else if (type == FileType.FOLDER) {
                             if (folder.isLocked()) {
                                 int x = Util.requestPassword();
 
                                 if (x == Util.PASSWORD_ACCEPTED) {
-                                    frameInstance.getClipper().cut(folder, frameInstance.user.fsys.getCurrentFolder());
+                                    frameInstance.getClipper().cut(folder, frameInstance.user.getFileSystem().getCurrent());
                                 } else if (x == Util.PASSWORD_DENIED) {
                                     MessageDialog.show(frameInstance, Constants.ACCESS_DENIED_TEXT);
                                 }
                             } else {
-                                frameInstance.getClipper().cut(folder, frameInstance.user.fsys.getCurrentFolder());
+                                frameInstance.getClipper().cut(folder, frameInstance.user.getFileSystem().getCurrent());
                             }
                         }
                     }
@@ -325,6 +327,10 @@ public class Tile extends JPanel implements Updatable {
 
     }
 
+    public FilePointer getFile() {
+        return file;
+    }
+    
     @Override
     public void update() {
         BACKGROUND_COLOR = frameInstance.getBackground();
@@ -413,31 +419,23 @@ public class Tile extends JPanel implements Updatable {
 
     private Icon getThumbNail() {
         var thumbnails = Main.getThumbNails();
-        if (thumbnails.containsKey(file)) {
-            return thumbnails.get(file);
+        if (thumbnails.containsKey(file.getName())) {
+            return thumbnails.get(file.getName());
         } else {
             return imageFileIcon;
         }
     }
 
     private Icon parseIcon() {
-        FormatDetector detector = FormatDetector.instance();
-        int x = detector.detectFormat(file.getName());
-
-        return switch (x) {
-            case FormatDetector.AUDIO ->
-                audioFileIcon;
-            case FormatDetector.DOCUMENT ->
-                documentFileIcon;
-            case FormatDetector.VIDEO ->
-                videoFileIcon;
-            case FormatDetector.OTHER ->
-                defaultFileIcon;
-            case FormatDetector.IMAGE ->
-                getThumbNail();
-            default ->
-                defaultFileIcon;
-        };
+        if (file.isAudio())
+            return audioFileIcon;
+        if (file.isImage())
+            return getThumbNail();
+        if (file.isDocument())
+            return documentFileIcon;
+        if (file.isVideo())
+            return videoFileIcon;
+        return defaultFileIcon;
     }
 
     private void name(String str) {
@@ -457,7 +455,7 @@ public class Tile extends JPanel implements Updatable {
         add(iconlbl, BorderLayout.CENTER);
         add(txtlbl, BorderLayout.SOUTH);
 
-        String toolTipText = file.getName() + "<hr>" + file.getParent().getFullName();
+        String toolTipText = file.getName() + "<hr>" + file.getParent().getPath();
         setToolTipText(String.format(toolTipHtml, toolTipWidth, toolTipText));
     }
 
@@ -472,31 +470,22 @@ public class Tile extends JPanel implements Updatable {
         add(iconlbl, BorderLayout.CENTER);
         add(txtlbl, BorderLayout.SOUTH);
 
-        String toolTipText = folder.getName() + "<hr>" + folder.getFullName();
+        String toolTipText = folder.getName() + "<hr>" + folder.getPath();
         setToolTipText(String.format(toolTipHtml, toolTipWidth, toolTipText));
     }
 
     private void shortenName() {
-        String[] tokens = name.split(" ");
-        int longest = 0;
-
-        for (String str : tokens) {
-            if (str.length() > longest) {
-                longest = str.length();
-            }
-        }
-
-        if (longest > 10 || name.length() > 20) {
-            int length = longest > 10 ? 10 : 20;
-            name = name.substring(0, length) + "...";
-        }
+        int length = 50;
+        if (name.length() < length)
+            return;
+        name = name.substring(0, length) + "...";
     }
 
     public Tile(String name, Folder folder) {
         type = FileType.FOLDER;
         this.folder = folder;
         name(name);
-        String toolTipText = "Return to: <hr> " + folder.getFullName();
+        String toolTipText = "Return to: <hr> " + folder.getPath();
         setToolTipText(String.format(toolTipHtml, toolTipWidth, toolTipText));
         setLayout(new BorderLayout());
 
@@ -644,27 +633,13 @@ public class Tile extends JPanel implements Updatable {
                     evt.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
                     if (evt.isDataFlavorSupported(FileTransferHandler.FILE_POINTER_LIST_FLAVOR)) {
                         TransferData data = (TransferData) evt.getTransferable().getTransferData(FileTransferHandler.FILE_POINTER_LIST_FLAVOR);
-                        Folder origin = frameInstance.user.fsys.findFolder(data.getOrigin().getFullName());
+                        Folder origin = frameInstance.user.getFileSystem().findFolder(data.getOrigin().getPath());
 
                         for (var pointer : data.getPointers()) {
-
-                            if (folder.containsFileName(pointer.getName())) {
-                                String newName = NameUtilities.nextFileName(pointer.getName(), folder);
-
-                                if (newName == null) {
-                                    MessageDialog.show(frameInstance, "Couldn't move \"" + pointer.getName() + "\" " + Constants.ANGRY_FACE);
-                                    continue;
-                                }
-
-                                pointer.setName(newName);
-                            }
-
-                            pointer.setParent(folder);
-                            origin.removeFilePointer(pointer, false);
-                            folder.addFile(pointer);
+                            Main.frameInstance.user.getFileSystem().transferFile(pointer, origin, folder);
                         }
 
-                        frameInstance.loadFolder(frameInstance.user.fsys.getCurrentFolder());
+                        Main.reload();
                         Main.saveUsers();
                     } else {
                         List<File> droppedObject = (List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);

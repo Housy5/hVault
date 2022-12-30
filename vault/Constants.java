@@ -28,7 +28,7 @@ public class Constants {
     public final static String FACE_PALM = "";
     public final static String ACCESS_DENIED_TEXT = "You have been denied access " + FACE_PALM;
     
-    public final static UIMode DEFAULT_UIMODE = UIMode.DARK;
+    public final static UIMode DEFAULT_UIMODE = UIMode.LIGHT;
     
     public static MessageDigest messageDigest = null;
 
