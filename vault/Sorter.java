@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Predicate;
 import vault.fsys.FileFormat;
 import vault.fsys.FilePointer;
 import vault.fsys.FileSystem;
@@ -56,10 +55,6 @@ public class Sorter {
             }
         }
 
-    }
-
-    private Exception IllegalArgumentException() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
     public static enum Type {
@@ -211,24 +206,18 @@ public class Sorter {
     }
 
     public List<Object> sortByType(List<Object> items, FileFormat type) {
-        List<Object> audio, documents, images, videos, others; 
-        audio = documents = images = videos = others = new ArrayList<>();
+        var audio = new ArrayList<Object>();
+        var documents = new ArrayList<Object>();
+        var images = new ArrayList<Object>();
+        var videos = new ArrayList<Object>();
+        var others = new ArrayList<Object>();
+        var pointers = items.parallelStream().filter(x -> x instanceof FilePointer).map(x -> (FilePointer) x).toList();
         
-        for (var item : items) {
-            if (!(item instanceof FilePointer))
-                throw new IllegalArgumentException("This function expects type FilePointer");
-            var pointer = (FilePointer) item;
-            if (pointer.isAudio())
-                audio.add(pointer);
-            else if (pointer.isDocument())
-                documents.add(pointer);
-            else if (pointer.isImage())
-                images.add(item);
-            else if (pointer.isVideo())
-                videos.add(pointer);
-            else
-                others.add(pointer);
-        }
+        audio.addAll(pointers.parallelStream().filter(FilePointer::isAudio).toList());
+        documents.addAll(pointers.parallelStream().filter(FilePointer::isDocument).toList());
+        images.addAll(pointers.parallelStream().filter(FilePointer::isImage).toList());
+        videos.addAll(pointers.parallelStream().filter(FilePointer::isVideo).toList());
+        others.addAll(pointers.parallelStream().filter(x -> !x.isAudio()).filter(x -> !x.isDocument()).filter(x -> !x.isImage()).filter(x -> !x.isVideo()).toList());
 
         sortAZ(audio, false);
         sortAZ(images, false);
@@ -240,6 +229,7 @@ public class Sorter {
 
         List<Object> result = new ArrayList<>();
         for (int i = 0; i < indexWheel.size(); i++) {
+            System.out.println(result.size());
             switch (indexWheel.valueAt(i)) {
                 case AUDIO ->
                     result.addAll(audio);

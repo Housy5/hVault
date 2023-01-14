@@ -112,7 +112,7 @@ public class Tile extends JPanel implements Updatable {
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     if (SwingUtilities.isLeftMouseButton(e)) {
-                        openFile(file);
+                        openPointer(file);
                     }
                 }
             });
@@ -338,6 +338,7 @@ public class Tile extends JPanel implements Updatable {
     }
 
     @SuppressWarnings("empty-statement")
+    @Deprecated
     private void openFile(FilePointer original) {
         try {
             frameInstance.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -348,6 +349,10 @@ public class Tile extends JPanel implements Updatable {
         } catch (IOException ex) {
             Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+    
+    private void openPointer(FilePointer pointer) {
+        new OpenThread(pointer).start();
     }
 
     public boolean isFile() {
@@ -544,7 +549,7 @@ public class Tile extends JPanel implements Updatable {
 
     private void doubleClickFile() {
         if (Desktop.isDesktopSupported()) {
-            openFile(file);
+            openPointer(file);
         } else {
             int x = Util.requestPassword();
 

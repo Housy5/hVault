@@ -42,6 +42,7 @@ public final class Frame extends JFrame implements Updatable {
     private FolderCursor folderCursor;
     private Clipper clipper;
     private FileSystem fsys;
+    private DisplayManager displayManager;
     private long finishImportTime = 0L;
 
     private Color progressLblColor = Color.BLACK;
@@ -77,6 +78,9 @@ public final class Frame extends JFrame implements Updatable {
         initFileSystem();
         initFolderCursor();
         initClipperAndSorter();
+        jScrollPane2.getVerticalScrollBar().setUnitIncrement(16);
+        jScrollPane2.getHorizontalScrollBar().setUnitIncrement(16);
+        displayManager = new DisplayManager(display);
 
         addDropTarget();
         initIcon();
@@ -100,6 +104,7 @@ public final class Frame extends JFrame implements Updatable {
                 modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
                 Arrays.stream(jPanel1.getComponents()).filter(x1 -> x1 instanceof Updatable).forEach(x2 -> ((Updatable) x2).update());
                 repaint();
+                Main.reload();
             } catch (IOException ex) {
                 Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
                 MessageDialog.show(null, ex.getMessage());
@@ -296,7 +301,7 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     private void clearAllTiles() {
-        Arrays.stream(display.getComponents()).parallel().filter(x -> x instanceof Tile).forEach(x -> display.remove(x));
+        displayManager.clear();
     }
 
     private boolean checkForPassword(Folder folder) {
@@ -314,7 +319,7 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     private void addFolder(Folder folder) {
-        display.add(new Tile(folder));
+        displayManager.add(new Tile(folder));
     }
 
     private void addFilePointer(FilePointer pointer) {
@@ -327,7 +332,7 @@ public final class Frame extends JFrame implements Updatable {
             }
             e.startDrag(cursor, createTransferable(pointer));
         });
-        display.add(tile);
+        displayManager.add(tile);
     }
 
     private void addFileSystemItem(FileSystemItem item) {
@@ -401,6 +406,12 @@ public final class Frame extends JFrame implements Updatable {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Vault");
+        setResizable(false);
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                formComponentResized(evt);
+            }
+        });
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 formWindowClosing(evt);
@@ -431,9 +442,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
 
     display.setFocusable(false);
     display.setMaximumSize(new Dimension(jScrollPane2.getWidth(), 32767));
-    java.awt.FlowLayout flowLayout1 = new java.awt.FlowLayout(java.awt.FlowLayout.LEADING);
-    flowLayout1.setAlignOnBaseline(true);
-    display.setLayout(flowLayout1);
+    display.setLayout(new javax.swing.BoxLayout(display, javax.swing.BoxLayout.PAGE_AXIS));
     jScrollPane2.setViewportView(display);
 
     jPanel1.add(jScrollPane2, "card2");
@@ -707,6 +716,10 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             resetSelections();
         }
     }//GEN-LAST:event_jPanel1MouseClicked
+
+    private void formComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentResized
+
+    }//GEN-LAST:event_formComponentResized
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton azbtn;
