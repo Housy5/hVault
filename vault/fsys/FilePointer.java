@@ -65,6 +65,10 @@ public final class FilePointer extends FileSystemItem implements FileSystemForma
         EncryptedIO.export(this, data);
     }
     
+    public final void saveBigFile(File file) {
+        
+    }
+    
     public final byte[] getContent() {
         if (content == null)
             throw new RuntimeException("There is no content file!");

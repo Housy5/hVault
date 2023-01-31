@@ -56,6 +56,7 @@ public class Tile extends JPanel implements Updatable {
 
     public static int DOUBLE_CLICK_TIME = 500; //in millis
     public static Color BACKGROUND_COLOR;
+    private static final int MAX_NAME_LENGTH = 50; //in characters
 
     public String name;
     public Folder folder;
@@ -480,7 +481,7 @@ public class Tile extends JPanel implements Updatable {
     }
 
     private void shortenName() {
-        int length = 50;
+        int length = MAX_NAME_LENGTH;
         if (name.length() < length)
             return;
         name = name.substring(0, length) + "...";

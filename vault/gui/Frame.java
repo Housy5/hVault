@@ -42,7 +42,6 @@ public final class Frame extends JFrame implements Updatable {
     private FolderCursor folderCursor;
     private Clipper clipper;
     private FileSystem fsys;
-    private DisplayManager displayManager;
     private long finishImportTime = 0L;
 
     private Color progressLblColor = Color.BLACK;
@@ -80,7 +79,7 @@ public final class Frame extends JFrame implements Updatable {
         initClipperAndSorter();
         jScrollPane2.getVerticalScrollBar().setUnitIncrement(16);
         jScrollPane2.getHorizontalScrollBar().setUnitIncrement(16);
-        displayManager = new DisplayManager(display);
+        display.setLayout(new FolderLayout(jScrollPane2));
 
         addDropTarget();
         initIcon();
@@ -301,7 +300,7 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     private void clearAllTiles() {
-        displayManager.clear();
+        display.removeAll();
     }
 
     private boolean checkForPassword(Folder folder) {
@@ -319,7 +318,7 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     private void addFolder(Folder folder) {
-        displayManager.add(new Tile(folder));
+        display.add(new Tile(folder));
     }
 
     private void addFilePointer(FilePointer pointer) {
@@ -332,7 +331,7 @@ public final class Frame extends JFrame implements Updatable {
             }
             e.startDrag(cursor, createTransferable(pointer));
         });
-        displayManager.add(tile);
+        display.add(tile);
     }
 
     private void addFileSystemItem(FileSystemItem item) {
@@ -406,7 +405,6 @@ public final class Frame extends JFrame implements Updatable {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Vault");
-        setResizable(false);
         addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent evt) {
                 formComponentResized(evt);
@@ -439,9 +437,27 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
 
     jScrollPane2.setBorder(null);
     jScrollPane2.setViewportView(display);
+    jScrollPane2.addComponentListener(new java.awt.event.ComponentAdapter() {
+        public void componentResized(java.awt.event.ComponentEvent evt) {
+            jScrollPane2ComponentResized(evt);
+        }
+    });
 
     display.setFocusable(false);
     display.setMaximumSize(new Dimension(jScrollPane2.getWidth(), 32767));
+    display.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+        public void mouseDragged(java.awt.event.MouseEvent evt) {
+            displayMouseDragged(evt);
+        }
+    });
+    display.addMouseListener(new java.awt.event.MouseAdapter() {
+        public void mouseClicked(java.awt.event.MouseEvent evt) {
+            displayMouseClicked(evt);
+        }
+        public void mouseReleased(java.awt.event.MouseEvent evt) {
+            displayMouseReleased(evt);
+        }
+    });
     display.setLayout(new javax.swing.BoxLayout(display, javax.swing.BoxLayout.PAGE_AXIS));
     jScrollPane2.setViewportView(display);
 
@@ -588,14 +604,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }
 
     private void jPanel1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseReleased
-        if (SwingUtilities.isRightMouseButton(evt)) {
-            if (!user.getFileSystem().getCurrent().isSearchFolder()) {
-                var menu = new DefaultMenu(this, user);
-                menu.show(jPanel1, evt.getX(), evt.getY());
-            }
-        } else if (SwingUtilities.isLeftMouseButton(evt)) {
-            resetSelectionRectangle();
-        }
+
     }//GEN-LAST:event_jPanel1MouseReleased
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
@@ -682,10 +691,26 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }//GEN-LAST:event_modelblMouseReleased
 
     private void jPanel1MouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseDragged
+
+    }//GEN-LAST:event_jPanel1MouseDragged
+
+    private void jPanel1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseClicked
+
+    }//GEN-LAST:event_jPanel1MouseClicked
+
+    private void formComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentResized
+
+    }//GEN-LAST:event_formComponentResized
+
+    private void jScrollPane2ComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jScrollPane2ComponentResized
+        display.revalidate();
+    }//GEN-LAST:event_jScrollPane2ComponentResized
+
+    private void displayMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_displayMouseDragged
         if (startPoint == null) {
             startPoint = evt.getPoint();
         } else {
-            jPanel1.paintImmediately(0, 0, jPanel1.getWidth(), jPanel1.getHeight());
+            display.paintImmediately(0, 0, display.getWidth(), display.getHeight());
             var point = evt.getPoint();
             int x = Math.min(startPoint.x, point.x);
             int y = Math.min(startPoint.y, point.y);
@@ -694,7 +719,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             int width = maxX - x;
             int height = maxY - y;
             selectionRect = new Rectangle(x, y, width, height);
-            Graphics g = jPanel1.getGraphics();
+            Graphics g = display.getGraphics();
             g.setColor((Color) Main.getUIProperties().get("secondary.color"));
             g.drawRect(x, y, width, height);
 
@@ -709,17 +734,24 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
                 }
             }
         }
-    }//GEN-LAST:event_jPanel1MouseDragged
+    }//GEN-LAST:event_displayMouseDragged
 
-    private void jPanel1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseClicked
+    private void displayMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_displayMouseClicked
         if (SwingUtilities.isLeftMouseButton(evt) && selectionTracker.getSelectionCount() > 0) {
             resetSelections();
         }
-    }//GEN-LAST:event_jPanel1MouseClicked
+    }//GEN-LAST:event_displayMouseClicked
 
-    private void formComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_formComponentResized
-
-    }//GEN-LAST:event_formComponentResized
+    private void displayMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_displayMouseReleased
+        if (SwingUtilities.isRightMouseButton(evt)) {
+            if (!user.getFileSystem().getCurrent().isSearchFolder()) {
+                var menu = new DefaultMenu(this, user);
+                menu.show(display, evt.getX(), evt.getY());
+            }
+        } else if (SwingUtilities.isLeftMouseButton(evt)) {
+            resetSelectionRectangle();
+        }
+    }//GEN-LAST:event_displayMouseReleased
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton azbtn;
