@@ -17,3 +17,5 @@
 <p>Simply download and run the installer.</p>
 <h2>Notes</h2>
 <p>To be sure make sure to back up the files. I don't think there are bugs anymore but you never know...</p>
+<h2>Screenshots</h2>
+<img href="">
