@@ -10,7 +10,7 @@
   <li>Very organizable with custom folders.</li>
   <li>AES encryption.</li>
   <li>Search functionality.</li>
-  <li>Drag and drop supported</li>
+  <li>Drag and drop supported.</li>
 </ul>
 <h2>Latest Release</h2>
 <p>You can find the latest release <a href="https://github.com/Housy5/hVault/releases/tag/v1.4">over here</a>.</p>
