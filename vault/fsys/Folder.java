@@ -4,16 +4,16 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import vault.fsys.io.FileSystemFormat;
 import vault.password.Password;
 
-public final class Folder extends FileSystemItem implements FileSystemFormat {
+public final class Folder extends FileSystemItem {
      
     private boolean locked = false;
     private boolean search = false;
     private Password password;
-    private String path, parentPath;
     
     private List<FilePointer> pointers;
     private List<Folder> subFolders;
@@ -24,7 +24,7 @@ public final class Folder extends FileSystemItem implements FileSystemFormat {
     }
     
     private boolean containsKey(String name, String...keys) {
-        return Arrays.stream(keys).parallel().filter(x -> name.contains(x)).count() > 0;
+        return Arrays.stream(keys).parallel().filter(x -> name.toLowerCase().contains(x.toLowerCase())).count() > 0;
     }
     
     private List<FilePointer> searchFiles(String... keys) {
@@ -38,7 +38,8 @@ public final class Folder extends FileSystemItem implements FileSystemFormat {
     } 
     
     public final List<FilePointer> search(String...keys) {
-        List<FilePointer> list = searchFiles(keys);
+        List<FilePointer> list = new ArrayList<>();
+        list.addAll(searchFiles(keys));
         list.addAll(searchSubFolders(keys));
         return list;
     }
@@ -66,35 +67,25 @@ public final class Folder extends FileSystemItem implements FileSystemFormat {
     public final boolean containsFolderName(String target) {
         return subFolders.parallelStream().filter(x -> x.getName().equalsIgnoreCase(target)).count() > 0;
     }
-  
-    public final String getParentPath() {
-        return parentPath;
-    }
-    
-    public final void setPath(String... elements) {
-        var sb = new StringBuilder();
-        Arrays.stream(elements).forEach(x -> sb.append(":").append(x));
-        path = sb.substring(1); //element 0 will always be a ':'.
-    }
-    
-    public final String getPath() {
-        return path;
-    }
-    
-    public final void setPassword(Password pass) {
-        password = pass;
-    }
-    
+ 
     public final Password getPassword() {
         return password;
     }
     
-    public final void setLocked(boolean locked) {
-        this.locked = locked;
+    public final void setPassword(Password password) {
+        this.password = password;
+    }
+    
+    public final void lock(Password password) {
+        this.password = password;
+    }
+    
+    public final void unlock() {
+        password = null;
     } 
     
     public final boolean isLocked() {
-        return locked;
+        return password != null;
     }
     
     public final boolean isSearchFolder() {
@@ -117,11 +108,11 @@ public final class Folder extends FileSystemItem implements FileSystemFormat {
         return List.copyOf(pointers);
     }
     
-    public final boolean removeFilePointer(FilePointer pointer) {
+    public final boolean removeFilePointerReference(FilePointer pointer) {
         return pointers.remove(pointer);
     }
     
-    public final void deleteFilePointer(FilePointer pointer) {
+    public final void removeFilePointer(FilePointer pointer) {
         pointer.delete();
         pointers.remove(pointer);
     }
@@ -132,6 +123,10 @@ public final class Folder extends FileSystemItem implements FileSystemFormat {
         if (containsFolderName(folder.getName()))
             folder.nextName(this);
         return subFolders.add(folder);
+    }
+
+    public final boolean removeFolderReference(Folder ref) {
+        return subFolders.remove(ref);
     }
     
     public final boolean removeFolder(Folder folder) {
@@ -165,59 +160,17 @@ public final class Folder extends FileSystemItem implements FileSystemFormat {
         Folder copy = new Folder();
         copy.setName(getName());
         copy.setCreationDate(LocalDateTime.now());
-        copy.setLocked(locked);
         copy.setPassword(password);
         pointers.parallelStream().map(FilePointer::copy).map(x -> x.setParent(copy)).map(x -> (FilePointer) x).forEach(x -> copy.addFilePointer(x));
         subFolders.parallelStream().map(Folder::copy).map(x -> x.setParent(copy)).map(x -> (Folder) x).forEach(x -> copy.addFolder(x));
         return copy;
     }
 
-    private List<FilePointer> getAllFilePointers() {
+    public List<FilePointer> getAllFilePointers() {
         List<FilePointer> pointers = new ArrayList<>();
         pointers.addAll(this.pointers);
         subFolders.parallelStream().forEach(x -> pointers.addAll(x.getAllFilePointers()));
         return pointers;
-    }
-    
-    private List<String> getFileSaveData() {
-        var pointers = getAllFilePointers();
-        return pointers.parallelStream().map(x -> x.format()).toList();
-    }
-    
-    public final List<String> getSaveData() {
-        List<String> data = new ArrayList<>();
-        subFolders.forEach(x -> data.add(x.format()));
-        subFolders.forEach(x -> data.addAll(x.getSaveData()));
-        if (getName().equals("Root")) {
-            data.addAll(getFileSaveData());
-        }
-        return data;
-    }
-    
-    @Override
-    public String format() {
-        //type::name::path::parent_url::pasword_data::locked_flag::search_flag::creation_data_as_string
-        String password = this.password == null ? "null" : this.password.toString();
-        return "folder::" + getName() + "::" + getPath() + "::" + getParent().getPath() + "::" + password + "::" + Boolean.toString(locked) + "::" + Boolean.toString(search) + "::" + getCreationDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-    }
-
-    @Override
-    public void parse(String data) {
-        var arr = data.split("::");
-        if (!arr[0].equals("folder"))
-            throw new IllegalArgumentException();
-        this.setName(arr[1]);
-        this.path = arr[2];
-        this.parentPath = arr[3];
-        this.setPassword(Password.parse(arr[4]));
-        this.locked = Boolean.parseBoolean(arr[5]);
-        this.search = Boolean.parseBoolean(arr[6]);
-        this.setCreationDate(LocalDateTime.parse(arr[7]));
-    }
-    
-    public final void remap() {
-        setPath(getParent().getPath(), getName());
-        subFolders.forEach(Folder::remap);
     }
     
     public static Folder fromList(List<FilePointer> pointers) {

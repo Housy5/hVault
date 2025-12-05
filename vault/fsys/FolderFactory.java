@@ -11,7 +11,6 @@ public final class FolderFactory {
         Folder folder = new Folder();
         folder.setParent(parent);
         folder.setName(name);
-        folder.setPath(parent.getPath(), name);
         folder.setCreationDate(LocalDateTime.now());
         return folder;
     }
@@ -20,7 +19,6 @@ public final class FolderFactory {
         Folder folder = Folder.fromList(pointers);
         folder.setName("Search");
         folder.setParent(parent);
-        folder.setPath("Search");
         folder.setCreationDate(LocalDateTime.now());
         folder.setSearchFolder(true);
         return folder;
@@ -30,7 +28,6 @@ public final class FolderFactory {
         Folder root = new Folder();
         root.setName("Root");
         root.setParent(root);
-        root.setPath(root.getName());
         return root;
     }
 }

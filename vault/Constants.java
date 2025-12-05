@@ -9,6 +9,7 @@ import vault.gui.MessageDialog;
 public class Constants {
 
     public final static File USER_HOME_PATH = new File(System.getProperty("user.home") + "/AppData/Local/hVault");
+    public final static File USERS_PATH = new File(USER_HOME_PATH + "/users");
     public final static File FILES_PATH = new File(USER_HOME_PATH.getAbsolutePath() + "/files");
     public final static File SAVE_FILE = new File(USER_HOME_PATH.getAbsolutePath() + "/vault.vlt");
     public final static File THUMBNAIL_FILE = new File(USER_HOME_PATH.getAbsolutePath() + "/thumbnails.vlt");
@@ -28,11 +29,13 @@ public class Constants {
     public final static String FACE_PALM = "";
     public final static String ACCESS_DENIED_TEXT = "You have been denied access " + FACE_PALM;
     
+    public final static int RANDOM_NAME_LENGTH = 16;
+    
     public final static UIMode DEFAULT_UIMODE = UIMode.LIGHT;
     
     public static MessageDigest messageDigest = null;
 
-    public final static String URL_SEPARATOR = " \u27a4 ";
+    public final static String URL_SEPARATOR = " > ";
     public final static int MAX_URL_LENGTH = 50;
 
     static {
@@ -41,6 +44,11 @@ public class Constants {
             if (!USER_HOME_PATH.exists()) {
                 USER_HOME_PATH.mkdirs();
             }
+            
+            if (!USERS_PATH.exists()) {
+                USERS_PATH.mkdirs();
+            }
+            
         } catch (NoSuchAlgorithmException ex) {
             ex.printStackTrace();
             MessageDialog.show(null, ex.getMessage());

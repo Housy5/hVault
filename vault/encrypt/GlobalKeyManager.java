@@ -1,6 +1,5 @@
 package vault.encrypt;
 
-import housy.lib.io.ObjectIO;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -10,6 +9,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import vault.Constants;
+import vault.ObjectIO;
 
 public final class GlobalKeyManager {
 
@@ -69,7 +69,7 @@ public final class GlobalKeyManager {
 
     private static GlobalKey loadGlobalKey(File keyFile) {
         try {
-            return (GlobalKey) ObjectIO.readObjectFrom(keyFile);
+            return (GlobalKey) ObjectIO.loadFromFile(keyFile);
         } catch (IOException | ClassNotFoundException ex) {
             throw new RuntimeException();
         }
@@ -84,7 +84,7 @@ public final class GlobalKeyManager {
     private static void save(GlobalKey key) {
         try {
             keyFile.createNewFile();
-            ObjectIO.putObjectTo(keyFile, key);
+            ObjectIO.saveToFile(keyFile, key);
         } catch (IOException ex) {
             throw new RuntimeException();
         }

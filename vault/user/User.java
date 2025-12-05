@@ -6,8 +6,7 @@ import vault.password.Password;
 
 public class User implements Serializable {
 
-    private transient FileSystem fsys;
-    private transient UserSaver saver;
+    private FileSystem fsys;
     private Password password;
     private boolean showStartUpMsg;
     private boolean showWelcomeMsg;
@@ -15,16 +14,16 @@ public class User implements Serializable {
 
     public User() {
         fsys = new FileSystem();
-        showStartUpMsg = true;
-        showWelcomeMsg = true;
-    }
-    
-    public final void setSaver(UserSaver saver) {
-        this.saver = saver;
+        showStartUpMsg = false;
+        showWelcomeMsg = false;
     }
     
     public final FileSystem getFileSystem() {
         return fsys;
+    }
+
+    public final void setFileSystem(FileSystem fsys) {
+        this.fsys = fsys;
     }
     
     public final Password getPassword() {
@@ -59,13 +58,4 @@ public class User implements Serializable {
         username = usrn;
     }
     
-    public final void init() {
-        fsys = new FileSystem();
-        saver = new UserSaver(this);
-        saver.load();
-    }
-    
-    public final void save() {
-        saver.save();
-    }
 }

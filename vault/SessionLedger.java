@@ -33,6 +33,12 @@ public class SessionLedger {
         in.close();
         return line;
     }
+    
+    private static long readTimestamp() throws FileNotFoundException {
+        var in = new Scanner(new FileInputStream(LEDGER_FILE));
+        String str = in.nextLine().split("-")[1];
+        return Long.parseLong(str);
+    }
 
     static boolean attemptStart() {
         if (isRunning()) {
@@ -58,7 +64,7 @@ public class SessionLedger {
     private static void startSession() {
         try {
             var out = new FileOutputStream(LEDGER_FILE);
-            out.write(("Running-" + id).getBytes());
+            out.write(("Running-" + System.currentTimeMillis()).getBytes());
             out.close();
         } catch (IOException e) {
             System.out.println(e.getMessage());

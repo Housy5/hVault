@@ -7,13 +7,11 @@ import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import vault.Constants;
-import vault.Export;
 import vault.IconUtil;
 import vault.Main;
 import vault.interfaces.Updatable;
@@ -55,6 +53,7 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jSeparator1 = new javax.swing.JSeparator();
         jLabel2 = new javax.swing.JLabel();
@@ -76,9 +75,11 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
             }
         });
 
+        jPanel1.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 36)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText("LOGIN");
+        jLabel1.setText("L O G I N");
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
@@ -102,8 +103,8 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
             }
         });
 
-        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton1.setText("SIGN UP");
+        jButton1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        jButton1.setText("Sign Up");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 jButton1MouseReleased(evt);
@@ -123,8 +124,8 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
             }
         });
 
-        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton2.setText("LOG IN");
+        jButton2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        jButton2.setText("Log In");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 jButton2MouseReleased(evt);
@@ -155,55 +156,53 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
             }
         });
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jSeparator1)
-                    .addGroup(layout.createSequentialGroup()
+                    .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(jLabel4)
                         .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addComponent(jLabel3)
-                                            .addComponent(jLabel2))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                            .addComponent(jPasswordField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                .addGap(0, 0, Short.MAX_VALUE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addGroup(jPanel1Layout.createSequentialGroup()
+                                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel3)
+                                        .addComponent(jLabel2))
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                        .addComponent(jPasswordField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 225, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                                 .addGap(0, 0, Short.MAX_VALUE)
                                 .addComponent(modelbl))))
                     .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(layout.createSequentialGroup()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel4))
-                    .addGroup(layout.createSequentialGroup()
+                    .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(61, 61, 61)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel2)
                             .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel3)
                             .addComponent(jPasswordField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(18, 18, 18)
@@ -212,10 +211,27 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
                         .addComponent(jButton1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(modelbl)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jButton1, jButton2});
+        jPanel1Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jButton1, jButton2});
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -244,8 +260,8 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
      *
      * @param user the user to be logged in.
      */
-    private void rotateWheel(User user) {
-        new Thread(() -> {
+    private void rotateWheel() {
+        Thread t = new Thread(() -> {
             var img = currentIcon;
             int turns = 10;
 
@@ -275,7 +291,7 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
                     rotateOp.filter(img, rotatedImg);
 
                     jLabel4.setIcon(new ImageIcon(rotatedImg));
-                    jLabel4.repaint();
+                    jLabel4.paintImmediately(0, 0, jLabel4.getWidth(), jLabel4.getHeight());
                     jLabel4.revalidate();
                     img = rotatedImg;
                     turns--;
@@ -284,35 +300,52 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
 
                 startTime = System.nanoTime();
             }
-
-            switchToMain(user);
-        }).start();
+        });
+        t.start();
+        try {
+            t.join();
+        } catch (InterruptedException ex) {
+        }
     }
 
     /**
      * The login method
      */
     private void login() {
-        String username = jTextField1.getText();
-        String password = jPasswordField1.getText();
+        String username = jTextField1.getText().trim();
+        String password = jPasswordField1.getText().trim();
 
         if (username.isBlank() || password.isBlank()) {
             return;
         }
 
-        username = username.trim();
-        password = password.trim();
-
-        if (Main.users.containsKey(username)) {
-            var user = Main.users.get(username);
-            if (user.getPassword().unlock(password)) {
-                rotateWheel(user);
-            } else {
-                MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
-            }
-        } else {
+        var optuser = Main.fetchUser(username);
+        
+        if (optuser.isEmpty()) {
             MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
+            return;
         }
+        
+        optuser.ifPresent(x -> {
+            if (x.getPassword().unlock(password)) {
+                rotateWheel();
+                switchToMain(x);
+            } else {
+                MessageDialog.show(LoginFrame.this, Constants.ACCESS_DENIED_TEXT);
+            }
+        });
+        
+        /*        if (Main.users.containsKey(username)) {
+        var user = Main.users.get(username);
+        if (user.getPassword().unlock(password)) {
+        rotateWheel();
+        switchToMain(user);
+        } else {
+        MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
+        }
+        } else {
+        MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
+        }*/
     }
 
     public void switchToMain(User user) {
@@ -320,29 +353,30 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
         frame.setLocationRelativeTo(this);
         EventQueue.invokeLater(() -> frame.setVisible(true));
         Main.frameInstance = frame;
+        Main.setCurrentUser(user);
+        Main.startLogoutTimer();
         frame.initTimer();
-        Export.startIOMonitor();
         frame.loadFolder(user.getFileSystem().getRoot());
         dispose();
 
-        if (user.showStartUpMessage()) {
-            Runnable runnable = new Runnable() {
-                public void run() {
-                    var startUpMsg = new StartUpMessage(frame, true);
-                    startUpMsg.setVisible(true);
-                }
-            };
-            EventQueue.invokeLater(runnable);
+        /*        if (user.showStartUpMessage()) {
+        Runnable runnable = new Runnable() {
+        public void run() {
+        var startUpMsg = new StartUpMessage(frame, true);
+        startUpMsg.setVisible(true);
         }
+        };
+        EventQueue.invokeLater(runnable);
+        }*/
 
-        if (user.showWelcomeMessage()) {
-            Runnable runnable = new Runnable() {
-                public void run() {
-                    new WelcomeScreen();
-                }
-            };
-            EventQueue.invokeLater(runnable);
+        /*        if (user.showWelcomeMessage()) {
+        Runnable runnable = new Runnable() {
+        public void run() {
+        new WelcomeScreen();
         }
+        };
+        EventQueue.invokeLater(runnable);
+        }*/
     }
 
     private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased
@@ -424,6 +458,7 @@ public class LoginFrame extends javax.swing.JFrame implements Updatable{
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private volatile javax.swing.JLabel jLabel4;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JPasswordField jPasswordField1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTextField jTextField1;

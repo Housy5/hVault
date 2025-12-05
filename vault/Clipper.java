@@ -1,9 +1,11 @@
 package vault;
 
+import java.util.List;
 import vault.gui.MessageDialog;
 import vault.fsys.Folder;
 import vault.fsys.FilePointer;
 import vault.fsys.FileSystem;
+import vault.fsys.FileSystemItem;
 
 public class Clipper {
 
@@ -14,7 +16,7 @@ public class Clipper {
     }
 
     private static enum Type {
-        COPY, CUT, NONE;
+        COPY, CUT, NONE, COPY_MANY, CUT_MANY;
     }
 
     private Object item;
@@ -31,62 +33,145 @@ public class Clipper {
     }
 
     private void restore() {
+        if (type == Type.CUT) {
+            restoreSingleItem();
+        } else if (type == Type.CUT_MANY) {
+            restoreMultipleItems();
+        }
+
+        type = Type.NONE;
+        item = null;
+        origin = null;
+
+        Main.reload();
+    }
+
+    private void restoreSingleItem() {
         if (item instanceof FilePointer pointer) {
             origin.addFilePointer(pointer);
         } else if (item instanceof Folder folder) {
             origin.addFolder(folder);
-            folder.remap();
         }
-        Main.reload();
     }
 
-    private void pasteFilePointer(FilePointer filePointer) {
-        Folder current = fsys.getCurrent();
+    private void restoreMultipleItems() {
+        @SuppressWarnings("unchecked")
+        List<FileSystemItem> items = (List<FileSystemItem>) item;
+        for (FileSystemItem item : items) {
+            if (item instanceof FilePointer pointer) {
+                origin.addFilePointer(pointer);
+            } else if (item instanceof Folder folder) {
+                origin.addFolder(folder);
+            }
+        }
+    }
 
-        if (type == Type.COPY) {
+    private void pasteFilePointer(FilePointer filePointer, Folder dest) {
+        if (type == Type.COPY || type == Type.COPY_MANY) {
             FilePointer copy = filePointer.copy();
-            copy.setParent(current);
-            current.addFilePointer(copy);
+            copy.setParent(dest);
+            dest.addFilePointer(copy);
         } else if (type == Type.CUT) {
-            filePointer.setParent(current);
-            current.addFilePointer(filePointer);
+            filePointer.setParent(dest);
+            dest.addFilePointer(filePointer);
             reset();
         }
     }
-
-    public void pasteFolder(Folder fol) {
-        Folder current = fsys.getCurrent();
-
-        if (type == Type.COPY) {
-            Folder copy = fol.copy();
-            current.addFolder(copy);
-            copy.setParent(current);
-            copy.remap();
-        } else {
-            current.addFolder(fol);
-            fol.setParent(current);
-            fol.remap();
-        }
+    
+    private void pasteFilePointer(FilePointer fp) {
+        pasteFilePointer(fp, fsys.getCurrent());
     }
 
-    public void paste() {
-        if (item == null) {
-            return;
+    private void pasteFolder(Folder fol, Folder dest) {
+        if (type == Type.COPY || type == Type.COPY_MANY) {
+            Folder copy = fol.copy();
+            dest.addFolder(copy);
+            copy.setParent(dest);
+        } else {
+            dest.addFolder(fol);
+            fol.setParent(dest);
         }
+    }
+    
+    private void pasteFolder(Folder fol) {
+        pasteFolder(fol, fsys.getCurrent());
+    }
 
-        if (fsys.getCurrent().isSearchFolder()) {
+    public void paste(Folder dest) {
+        if (dest.isSearchFolder()) {
             MessageDialog.show(Main.frameInstance, "You are not allowed to paste stuff here " + Constants.ANGRY_FACE);
             return;
         }
 
-        if (item instanceof FilePointer filePointer) {
-            pasteFilePointer(filePointer);
-        } else if (item instanceof Folder fol) {
-            pasteFolder(fol);
+        if (type == Type.COPY || type == Type.CUT) {
+            if (item instanceof FilePointer filePointer) {
+                pasteFilePointer(filePointer);
+            } else if (item instanceof Folder fol) {
+                if (fol.equals(dest)) {
+                    origin.addFolder(fol);
+                } else {
+                    pasteFolder(fol);
+                }
+            }
+        } else if (type == Type.COPY_MANY || type == Type.CUT_MANY) {
+            @SuppressWarnings("unchecked")
+            List<FileSystemItem> items = (List<FileSystemItem>) item;
+            for (FileSystemItem item : items) {
+                if (item instanceof FilePointer filePointer) {
+                    pasteFilePointer(filePointer);
+                } else if (item instanceof Folder fol) {
+                    if (fol.equals(dest)) {
+                        origin.addFolder(fol);
+                        continue;
+                    }
+                    pasteFolder(fol);
+                }
+            }
         }
 
         Main.reload();
-        Main.saveUsers();
+        Main.save();
+    }
+
+    public void paste() {
+        paste(fsys.getCurrent());
+        /*        if (item == null) {
+        return;
+        }
+        
+        if (fsys.getCurrent().isSearchFolder()) {
+        MessageDialog.show(Main.frameInstance, "You are not allowed to paste stuff here " + Constants.ANGRY_FACE);
+        return;
+        }
+        
+        if (type == Type.COPY || type == Type.CUT) {
+        if (item instanceof FilePointer filePointer) {
+        pasteFilePointer(filePointer);
+        } else if (item instanceof Folder fol) {
+        if (fol.equals(fsys.getCurrent())) {
+        origin.addFolder(fol);
+        } else {
+        pasteFolder(fol);
+        }
+        }
+        } else if (type == Type.COPY_MANY || type == Type.CUT_MANY) {
+        @SuppressWarnings("unchecked")
+        List<FileSystemItem> items = (List<FileSystemItem>) item;
+        for (FileSystemItem item : items) {
+        if (item instanceof FilePointer filePointer) {
+        pasteFilePointer(filePointer);
+        } else if (item instanceof Folder fol) {
+        if (fol.equals(fsys.getCurrent())) {
+        origin.addFolder(fol);
+        continue;
+        }
+        pasteFolder(fol);
+        }
+        }
+        }
+        
+        Main.reload();
+        Main.save();*/
     }
 
     public void copy(Object obj) {
@@ -110,12 +195,41 @@ public class Clipper {
         type = Type.CUT;
 
         if (obj instanceof FilePointer fp) {
-            objOrigin.removeFilePointer(fp);
+            objOrigin.removeFilePointerReference(fp);
         } else if (obj instanceof Folder fol) {
-            objOrigin.removeFolder(fol);
+            objOrigin.removeFolderReference(fol);
         }
         Main.reload();
         item = obj;
         origin = objOrigin;
+    }
+
+    public void cutMany(List<FileSystemItem> items, Folder origin) {
+        if (hasContent()) {
+            restore();
+        }
+
+        type = Type.CUT_MANY;
+
+        for (FileSystemItem item : items) {
+            if (item instanceof FilePointer fp) {
+                origin.removeFilePointerReference(fp);
+            } else if (item instanceof Folder f) {
+                origin.removeFolderReference(f);
+            }
+        }
+
+        Main.reload();
+        item = items;
+        this.origin = origin;
+    }
+
+    public void copyMany(List<FileSystemItem> items) {
+        if (hasContent()) {
+            restore();
+        }
+
+        type = Type.COPY_MANY;
+        item = items;
     }
 }

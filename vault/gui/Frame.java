@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.EventQueue;
-import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -13,7 +12,6 @@ import java.awt.dnd.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -23,13 +21,16 @@ import javax.swing.*;
 import javax.swing.border.*;
 import vault.*;
 import vault.gui.menu.DefaultMenu;
-import vault.gui.selections.SelectionTracker;
 import vault.interfaces.Updatable;
 import vault.fsys.Folder;
 import vault.fsys.FilePointer;
 import vault.fsys.FileSystem;
 import vault.fsys.FileSystemItem;
-import vault.queue.*;
+import vault.gui.dnd.FSITransferHandler;
+import vault.gui.status.ProgramStatus;
+import vault.gui.status.StatusManager;
+import vault.io.IOQueue;
+import vault.io.IOTask;
 import vault.user.User;
 
 public final class Frame extends JFrame implements Updatable {
@@ -37,9 +38,7 @@ public final class Frame extends JFrame implements Updatable {
     public User user;
     private Timer progressTimer;
 
-    private final SelectionTracker selectionTracker;
     private Sorter sorter;
-    private FolderCursor folderCursor;
     private Clipper clipper;
     private FileSystem fsys;
     private long finishImportTime = 0L;
@@ -48,17 +47,11 @@ public final class Frame extends JFrame implements Updatable {
 
     private Rectangle selectionRect = null;
     private Point startPoint;
+    private GlassPanel glass;
 
-    private List<Tile> tiles;
-
+    
     private void initFileSystem() {
         fsys = user.getFileSystem();
-        fsys.moveTo(fsys.getRoot());
-    }
-
-    private void initFolderCursor() {
-        folderCursor = new FolderCursor(fsys);
-        folderCursor.push(fsys.getCurrent());
     }
 
     private void initClipperAndSorter() {
@@ -70,17 +63,23 @@ public final class Frame extends JFrame implements Updatable {
         initComponents();
         this.user = user;
         setLocationRelativeTo(null);
-
-        selectionTracker = new SelectionTracker();
+        
         setTitle(user.getUsername() + "'s  Vault!");
 
         initFileSystem();
-        initFolderCursor();
         initClipperAndSorter();
         jScrollPane2.getVerticalScrollBar().setUnitIncrement(16);
         jScrollPane2.getHorizontalScrollBar().setUnitIncrement(16);
         display.setLayout(new FolderLayout(jScrollPane2));
-
+                
+        progressLblColor = (Color) Main.getUIProperties().get("primary.color");
+        
+        glass = new GlassPanel();
+        glass.setOpaque(false);
+        glass.setForeground((Color) Main.getUIProperties().get("secondary.color"));
+        setGlassPane(glass);
+        glass.setVisible(true);
+        
         addDropTarget();
         initIcon();
     }
@@ -100,21 +99,27 @@ public final class Frame extends JFrame implements Updatable {
                 jSeparator1.setForeground((Color) p.get("secondary.color"));
                 jSeparator2.setForeground((Color) p.get("secondary.color"));
                 progressLblColor = (Color) p.get("primary.color");
+                glass.setForeground((Color) p.get("secondary.color"));
                 modelbl.setIcon(IconUtil.getInstance().getUIModeIcon(Main.getUIMode()));
                 Arrays.stream(jPanel1.getComponents()).filter(x1 -> x1 instanceof Updatable).forEach(x2 -> ((Updatable) x2).update());
                 repaint();
                 Main.reload();
             } catch (IOException ex) {
-                Logger.getLogger(Frame.class.getName()).log(Level.SEVERE, null, ex);
+                ex.printStackTrace();
                 MessageDialog.show(null, ex.getMessage());
             }
         };
         EventQueue.invokeLater(runnable);
     }
 
+    public JPanel getDisplay() {
+        return display;
+    }
+    
     private void switchCursorTo(Cursor cursor) {
-        if (getCursor().equals(cursor))
+        if (getCursor().equals(cursor)) {
             return;
+        }
         this.setCursor(cursor);
     }
 
@@ -127,28 +132,17 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     public void resetSelections() {
-        selectionTracker.resetSelections();
+        getSelectedTiles().forEach(x -> x.setSelected(false));
     }
 
-    public void track(Tile tile) {
-        selectionTracker.track(tile);
-    }
-
-    public void untrack(Tile tile) {
-        selectionTracker.untrack(tile);
-    }
-
-    public long getSelectionCount() {
-        return selectionTracker.getSelectionCount();
+    public int getSelectionCount() {
+        return getSelectedTiles().size();
     }
 
     public List<Tile> getSelectedTiles() {
-        return selectionTracker.getSelectedTiles();
+        return getTiles().stream().filter(Tile::isSelected).toList();
     }
 
-    public FolderCursor getFolderCursor() {
-        return folderCursor;
-    }
 
     private void addDropTarget() {
         jPanel1.setDropTarget(new DropTarget() {
@@ -157,7 +151,7 @@ public final class Frame extends JFrame implements Updatable {
                 try {
                     Folder folder = fsys.getCurrent();
                     evt.acceptDrop(DnDConstants.ACTION_COPY);
-                    if (evt.isDataFlavorSupported(FileTransferHandler.FILE_POINTER_LIST_FLAVOR)) {
+                    if (evt.isDataFlavorSupported(FSITransferHandler.FILE_POINTER_LIST_FLAVOR)) {
                         return;
                     }
                     @SuppressWarnings("unchecked")
@@ -174,7 +168,7 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     public void initTimer() {
-        progressTimer = new Timer(250, (ActionEvent e) -> {
+        progressTimer = new Timer(100, (ActionEvent e) -> {
             updateProgressLabel();
             updateSortButtons();
         });
@@ -241,19 +235,11 @@ public final class Frame extends JFrame implements Updatable {
 
     private void updateProgressLabel() {
         Runnable runnable = () -> {
-            var importQueue = ImportQueue.instance();
-            var exportQueue = ExportQueue.instance();
-
-            if (importQueue.isImporting() && exportQueue.isExporting()) {
-                showProgress(String.format("Importing: %d files left, Exporting: %d files left.", importQueue.count() + 1, exportQueue.count() + 1));
-            } else if (importQueue.isImporting()) {
-                showProgress(String.format("Importing: %d files left.", importQueue.count() + 1));
-            } else if (exportQueue.isExporting()) {
-                showProgress(String.format("Exporting: %d files left.", exportQueue.count() + 1));
-            } else if (System.currentTimeMillis() - finishImportTime < 3000) {
-                showProgress("Success!", new Color(0x87a96b));
-            } else {
-                showProgress(IDLE_STATE);
+            switch(StatusManager.nextStatus()) {
+                case EXPORTING -> {showProgress("Exporting files...");}
+                case IMPORTING -> {showProgress("Importing files...");}
+                case OPENING -> {showProgress("Opening file...");}
+                case WAITING -> {showProgress("Waiting...");}
             }
         };
         EventQueue.invokeLater(runnable);
@@ -267,6 +253,14 @@ public final class Frame extends JFrame implements Updatable {
         return result;
     }
 
+    public void open(Folder folder) {
+        if (!checkForPassword(folder)) {
+            return;
+        }
+        fsys.moveTo(folder);
+        loadFolder(fsys.getCurrent());
+    }
+    
     public final static String IDLE_STATE = "Waiting...";
 
     public void showState(String state) {
@@ -304,8 +298,9 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     private boolean checkForPassword(Folder folder) {
-        if (!folder.isLocked() || (folder.equals(fsys.getCurrent()) || folder.equals(fsys.getCurrent().getParent())))
+        if (!folder.isLocked() || (folder.equals(fsys.getCurrent()) || folder.equals(fsys.getCurrent().getParent()))) {
             return true;
+        }
         int result = Util.requestFolderPassword(folder);
         if (result == Util.PASSWORD_DENIED) {
             MessageDialog.show(this, Constants.ACCESS_DENIED_TEXT);
@@ -323,22 +318,15 @@ public final class Frame extends JFrame implements Updatable {
 
     private void addFilePointer(FilePointer pointer) {
         var tile = new Tile(pointer);
-        var dragSource = new DragSource();
-        dragSource.createDefaultDragGestureRecognizer(tile, DnDConstants.ACTION_MOVE, (DragGestureEvent e) -> {
-            var cursor = Cursor.getDefaultCursor();
-            if (e.getDragAction() == DnDConstants.ACTION_MOVE) {
-                cursor = DragSource.DefaultMoveDrop;
-            }
-            e.startDrag(cursor, createTransferable(pointer));
-        });
         display.add(tile);
     }
 
     private void addFileSystemItem(FileSystemItem item) {
-        if (item instanceof Folder folder)
+        if (item instanceof Folder folder) {
             addFolder(folder);
-        else if (item instanceof FilePointer pointer)
+        } else if (item instanceof FilePointer pointer) {
             addFilePointer(pointer);
+        }
     }
 
     private void updateTitle(Folder folder) {
@@ -347,38 +335,26 @@ public final class Frame extends JFrame implements Updatable {
     }
 
     private void reval() {
-        tiles = getTiles(true);
         jPanel1.revalidate();
         jPanel1.repaint();
         scanThumbNails();
     }
 
     public void loadFolder(Folder folder) {
-        Runnable runnable = new Runnable() {
-            public void run() {
-                if (!checkForPassword(folder))
-                    return;
-                fsys.moveTo(folder);
-                clearAllTiles();
-                updateTitle(folder);
-
-                var items = sorter.sort(folder.getAllItems());
-                items.stream().map(x -> (FileSystemItem) x).forEach(x -> addFileSystemItem(x));
-                reval();
-            }
+        Runnable runnable = () -> {
+            clearAllTiles();
+            updateTitle(folder);
+            var items = sorter.sort(folder.getAllItems());
+            items.stream()
+                    .map(x -> (FileSystemItem) x)
+                    .forEach(x -> addFileSystemItem(x));
+            reval();
         };
         EventQueue.invokeLater(runnable);
     }
 
     public Clipper getClipper() {
         return clipper;
-    }
-
-    private Transferable createTransferable(FilePointer pointer) {
-        List<FilePointer> selectedFiles = new ArrayList<>();
-        selectedFiles.addAll(getTiles(false).parallelStream().filter(x -> x.isSelected() && x.isFile()).map(Tile::getFile).toList());
-        selectedFiles.add(pointer);
-        return new FileTransferHandler(selectedFiles, user.getFileSystem().getCurrent());
     }
 
     @SuppressWarnings("unchecked")
@@ -417,7 +393,7 @@ public final class Frame extends JFrame implements Updatable {
         });
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(new javax.swing.border.LineBorder((Color) Main.getUIProperties().get("primary.color")
-            , 1, true), "Folder Name", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("SansSerif", 1, 14))); // NOI18N
+            , 1, true), "Folder Name", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("SansSerif", 0, 14))); // NOI18N
 jPanel1.setName(""); // NOI18N
 jPanel1.setPreferredSize(new java.awt.Dimension(800, 600));
 jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
@@ -448,6 +424,9 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     display.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
         public void mouseDragged(java.awt.event.MouseEvent evt) {
             displayMouseDragged(evt);
+        }
+        public void mouseMoved(java.awt.event.MouseEvent evt) {
+            displayMouseMoved(evt);
         }
     });
     display.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -486,6 +465,11 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             jButton1MouseReleased(evt);
         }
     });
+    jButton1.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            jButton1ActionPerformed(evt);
+        }
+    });
     jPanel3.add(jButton1);
 
     jButton2.setText("\u276f");
@@ -494,6 +478,11 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
         public void mouseReleased(java.awt.event.MouseEvent evt) {
             jButton2MouseReleased(evt);
+        }
+    });
+    jButton2.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            jButton2ActionPerformed(evt);
         }
     });
     jPanel3.add(jButton2);
@@ -567,8 +556,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }// </editor-fold>//GEN-END:initComponents
 
     public void addFiles(List<File> f, Folder folder) {
-        ImportQueue queue = ImportQueue.instance();
-        f.forEach(x -> queue.addTicket(new ImportTicket(x, folder)));
+        f.stream().map(x -> IOTask.createImportTask(folder, x.toPath())).forEach(x -> IOQueue.addIOTask(x));
     }
 
     /**
@@ -591,16 +579,12 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }
 
     private void resetSelectionRectangle() {
-        selectionRect = null;
+        glass.reset();
         startPoint = null;
-        jPanel1.repaint();
     }
 
-    private List<Tile> getTiles(boolean update) {
-        if (update) {
-            return Arrays.stream(jPanel1.getComponents()).filter(x -> x instanceof Tile).map(x -> (Tile) x).toList();
-        }
-        return tiles;
+    private List<Tile> getTiles() {
+        return Arrays.stream(display.getComponents()).filter(x -> x instanceof Tile).map(x -> (Tile) x).toList();
     }
 
     private void jPanel1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jPanel1MouseReleased
@@ -608,7 +592,7 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }//GEN-LAST:event_jPanel1MouseReleased
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-        if (ImportQueue.instance().isImporting() || ExportQueue.instance().isExporting()) {
+        if (StatusManager.nextStatus() != ProgramStatus.WAITING) {
             MessageDialog.show(this, "You can't exit the program while importing or exporting files!");
         } else {
             System.exit(0);
@@ -616,20 +600,16 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     }//GEN-LAST:event_formWindowClosing
 
     private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
-            loadFolder(folderCursor.next());
-        }
+
     }//GEN-LAST:event_jButton2MouseReleased
 
     private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
-        if (SwingUtilities.isLeftMouseButton(evt)) {
-            loadFolder(folderCursor.prev());
-        }
+
     }//GEN-LAST:event_jButton1MouseReleased
 
     private void azbtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_azbtnActionPerformed
         var type = sorter.getType();
-
+        
         if (type == Sorter.Type.AZ) {
             sorter.setType(Sorter.Type.ZA);
         } else {
@@ -705,39 +685,34 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
     private void jScrollPane2ComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jScrollPane2ComponentResized
         display.revalidate();
     }//GEN-LAST:event_jScrollPane2ComponentResized
-
+        
     private void displayMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_displayMouseDragged
-        if (startPoint == null) {
+        if (startPoint == null && this.getSelectionCount() == 0) {
             startPoint = evt.getPoint();
-        } else {
-            display.paintImmediately(0, 0, display.getWidth(), display.getHeight());
-            var point = evt.getPoint();
-            int x = Math.min(startPoint.x, point.x);
-            int y = Math.min(startPoint.y, point.y);
-            int maxX = Math.max(point.x, startPoint.x);
-            int maxY = Math.max(point.y, startPoint.y);
-            int width = maxX - x;
-            int height = maxY - y;
-            selectionRect = new Rectangle(x, y, width, height);
-            Graphics g = display.getGraphics();
-            g.setColor((Color) Main.getUIProperties().get("secondary.color"));
-            g.drawRect(x, y, width, height);
-
-            var tiles = getTiles(false);
+            glass.setStartPoint(SwingUtilities.convertPoint(display, evt.getPoint(), glass));
+        } else if (startPoint == null && getSelectionCount() != 0) {
+   
+        } else {            
+            glass.setEndPoint(SwingUtilities.convertPoint(display, evt.getPoint(), glass));
+            
+            selectionRect = SwingUtilities.convertRectangle(glass, glass.getRectangle(), display);
+            
+            if (selectionRect == null)
+                return;
+            
+            var tiles = getTiles();
             for (Tile tile : tiles) {
                 if (!tile.isSelected() && selectionRect.intersects(tile.toRectangle())) {
-                    tile.toggleSelected();
-                    track(tile);
+                    tile.setSelected(true);
                 } else if (tile.isSelected() && !selectionRect.intersects(tile.toRectangle())) {
-                    tile.toggleSelected();
-                    untrack(tile);
+                    tile.setSelected(false);
                 }
-            }
+            }            
         }
     }//GEN-LAST:event_displayMouseDragged
 
     private void displayMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_displayMouseClicked
-        if (SwingUtilities.isLeftMouseButton(evt) && selectionTracker.getSelectionCount() > 0) {
+        if (SwingUtilities.isLeftMouseButton(evt) && getSelectionCount() > 0) {
             resetSelections();
         }
     }//GEN-LAST:event_displayMouseClicked
@@ -752,6 +727,28 @@ jPanel1.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             resetSelectionRectangle();
         }
     }//GEN-LAST:event_displayMouseReleased
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        if (fsys.back()) {
+            this.loadFolder(fsys.getCurrent());
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        if (fsys.next()) {
+            Folder f = fsys.getCurrent();
+            if (f.isLocked()) {
+                fsys.back();
+                open(f);
+                return;
+            }
+            this.loadFolder(fsys.getCurrent());
+        }
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void displayMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_displayMouseMoved
+
+    }//GEN-LAST:event_displayMouseMoved
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton azbtn;

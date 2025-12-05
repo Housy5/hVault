@@ -19,9 +19,9 @@ public class SearchDialog extends javax.swing.JDialog {
 
     private List<String> keywords;
     private int option = CANCEL;
-    
+
     public static final int SEARCH = 0, CANCEL = 1;
-    
+
     private class ExitButtonListener implements KeyListener, MouseListener {
 
         @Override
@@ -69,15 +69,16 @@ public class SearchDialog extends javax.swing.JDialog {
                 repaint();
             }
         }
-        
+
     }
-    
+
     private class KeyWordPanel extends JPanel {
-        
+
         private String keyword;
-        
+
         public KeyWordPanel(String keyword) {
-            if (keyword == null) throw new NullPointerException("'keyword' can't be null!");
+            if (keyword == null)
+                throw new NullPointerException("'keyword' can't be null!");
             this.keyword = keyword;
             setBorder(BorderFactory.createLineBorder(Color.BLACK, 1, true));
             setLayout(new FlowLayout());
@@ -90,12 +91,12 @@ public class SearchDialog extends javax.swing.JDialog {
             add(delete);
             pack();
         }
-        
+
         public String getKeyWord() {
             return keyword;
         }
     }
-    
+
     public SearchDialog(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
@@ -103,7 +104,7 @@ public class SearchDialog extends javax.swing.JDialog {
         setResizable(false);
         setLocationRelativeTo(parent);
     }
-    
+
     public String[] keywordsAsArray() {
         String[] array = new String[keywords.size()];
         for (int i = 0; i < array.length; i++) {
@@ -111,7 +112,7 @@ public class SearchDialog extends javax.swing.JDialog {
         }
         return array;
     }
-    
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -136,6 +137,14 @@ public class SearchDialog extends javax.swing.JDialog {
         jLabel2.setText("Enter a keyword:");
 
         jTextField1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jTextField1KeyReleased(evt);
+            }
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                jTextField1KeyTyped(evt);
+            }
+        });
 
         jButton1.setText("ADD");
         jButton1.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -143,17 +152,27 @@ public class SearchDialog extends javax.swing.JDialog {
                 jButton1MouseReleased(evt);
             }
         });
+        jButton1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jButton1KeyReleased(evt);
+            }
+        });
 
         jScrollPane1.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(0, 0, 0), 1, true));
         jScrollPane1.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         jScrollPane1.setViewportView(jPanel1);
 
-        jPanel2.setLayout(new java.awt.GridLayout(1, 0));
+        jPanel2.setLayout(new java.awt.GridLayout(1, 0, 5, 0));
 
         jButton2.setText("SEARCH");
         jButton2.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 jButton2MouseReleased(evt);
+            }
+        });
+        jButton2.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jButton2KeyReleased(evt);
             }
         });
         jPanel2.add(jButton2);
@@ -162,6 +181,11 @@ public class SearchDialog extends javax.swing.JDialog {
         jButton3.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseReleased(java.awt.event.MouseEvent evt) {
                 jButton3MouseReleased(evt);
+            }
+        });
+        jButton3.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jButton3KeyReleased(evt);
             }
         });
         jPanel2.add(jButton3);
@@ -211,16 +235,8 @@ public class SearchDialog extends javax.swing.JDialog {
     private void jButton1MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton1MouseReleased
         String text = jTextField1.getText();
         if (SwingUtilities.isLeftMouseButton(evt)) {
-            if (text != null && !text.isBlank() && !keywords.contains(text)) {
-                KeyWordPanel panel = new KeyWordPanel(text.trim());
-                jPanel1.add(panel);
-                keywords.add(text.trim());
-                repaint();
-                revalidate();
-            } else {
-                Toolkit.getDefaultToolkit().beep();
-            }
-        } 
+            addKeyword(text);
+        }
     }//GEN-LAST:event_jButton1MouseReleased
 
     private void jButton2MouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jButton2MouseReleased
@@ -236,11 +252,45 @@ public class SearchDialog extends javax.swing.JDialog {
         }
     }//GEN-LAST:event_jButton3MouseReleased
 
+    private void jTextField1KeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyTyped
+
+    }//GEN-LAST:event_jTextField1KeyTyped
+
+    private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased
+        if (isEnterKey(evt)) {
+            String text = jTextField1.getText();
+            addKeyword(text);
+        }
+    }//GEN-LAST:event_jTextField1KeyReleased
+
+    private boolean isEnterKey(KeyEvent evt) {
+        return evt.getKeyCode() == KeyEvent.VK_ENTER;
+    }
+    
+    private void jButton2KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton2KeyReleased
+        if (isEnterKey(evt)) {
+            option = SEARCH;
+            dispose();
+        }
+    }//GEN-LAST:event_jButton2KeyReleased
+
+    private void jButton3KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton3KeyReleased
+        if (isEnterKey(evt))
+            dispose();
+    }//GEN-LAST:event_jButton3KeyReleased
+
+    private void jButton1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jButton1KeyReleased
+        if (isEnterKey(evt)) {
+            String text = jTextField1.getText();
+            addKeyword(text);
+        }
+    }//GEN-LAST:event_jButton1KeyReleased
+
     public int open() {
         setVisible(true);
         return option;
     }
-    
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
@@ -253,4 +303,16 @@ public class SearchDialog extends javax.swing.JDialog {
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTextField jTextField1;
     // End of variables declaration//GEN-END:variables
+
+    private void addKeyword(String text) {
+        if (text != null && !text.isBlank() && !keywords.contains(text)) {
+            KeyWordPanel panel = new KeyWordPanel(text.trim());
+            jPanel1.add(panel);
+            keywords.add(text.trim().toLowerCase());
+            repaint();
+            revalidate();
+        } else {
+            Toolkit.getDefaultToolkit().beep();
+        }
+    }
 }

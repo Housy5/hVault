@@ -2,10 +2,16 @@ package vault;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
+import java.awt.AWTEvent;
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Image;
+import java.awt.Toolkit;
+import java.awt.Window;
+import java.awt.event.AWTEventListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -18,12 +24,15 @@ import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.ImageIcon;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import vault.fsys.Folder;
@@ -31,7 +40,10 @@ import vault.gui.CursorType;
 import vault.gui.Frame;
 import vault.gui.LoginFrame;
 import vault.gui.MessageDialog;
+import vault.gui.status.ProgramStatus;
+import vault.gui.status.StatusManager;
 import vault.interfaces.Updatable;
+import vault.serial.Saver;
 
 import vault.user.User;
 
@@ -45,14 +57,104 @@ public class Main {
     public static volatile Properties uiProperties;
     public static Font notoEmojiFont;
 
+    private static User currentUser;
+
     private static volatile UIMode uimode;
 
     static {
         initUIMode();
         initLaf();
-        loadUsers();
-        initUsers();
         loadThumbNails();
+    }
+
+    private static long eventCounter = Long.MIN_VALUE;
+
+    public static void installActivityListeners() {
+        AWTEventListener listener = (e) -> {
+            if ((e instanceof MouseEvent || e instanceof KeyEvent) && currentUser != null) {
+                resetLogoutTimer();
+                eventCounter++;
+            }
+        };
+
+        long mask = AWTEvent.MOUSE_EVENT_MASK | AWTEvent.MOUSE_MOTION_EVENT_MASK | AWTEvent.KEY_EVENT_MASK;
+
+        Toolkit.getDefaultToolkit().addAWTEventListener(listener, mask);
+    }
+
+    private static final int LOGOUT_TIME = 5 * 60 * 1000;
+    private static final Timer inactivityTimer = new Timer(LOGOUT_TIME, e -> onAutoLogout());
+
+    public static void startLogoutTimer() {
+        inactivityTimer.setRepeats(false);
+        inactivityTimer.start();
+    }
+
+    private static void onAutoLogout() {
+        long eventCount = eventCounter;
+
+        //Waiting for IO operations to finish before kicking.
+        while (StatusManager.nextStatus() != ProgramStatus.WAITING) {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ex) {
+            }
+        }
+
+        //If user is back when IO operations are finished.
+        if (eventCount != eventCounter) {
+            startLogoutTimer();
+            return;
+        }
+
+        discardDialogs();
+        logout();
+    }
+
+    private static void discardDialogs() {
+        for (Window win : Window.getWindows()) {
+            if (win instanceof JDialog) {
+                win.dispose();
+            }
+        }
+    }
+
+    private static void resetLogoutTimer() {
+        inactivityTimer.restart();
+    }
+
+    public static void logout() {
+        if (currentUser == null) {
+            throw new IllegalStateException("Can't logout when you're not logged in yet.");
+        }
+
+        LoginFrame lf = new LoginFrame();
+        lf.setLocationRelativeTo(frameInstance);
+
+        frameInstance.stopProgressTimer();
+        frameInstance.dispose();
+        frameInstance = null;
+        currentUser = null;
+
+        lf.setVisible(true);
+        if (inactivityTimer.isRunning()) {
+            inactivityTimer.stop();
+        }
+    }
+
+    public static void setCurrentUser(User user) {
+        currentUser = user;
+    }
+
+    public static User getCurrentUser() {
+        return currentUser;
+    }
+
+    public static void save() {
+        if (currentUser == null) {
+            return;
+        }
+        Saver.save(currentUser);
     }
 
     public static UIMode getUIMode() {
@@ -62,7 +164,7 @@ public class Main {
     public static Folder getCurrentFolder() {
         return frameInstance.user.getFileSystem().getCurrent();
     }
-    
+
     public static void toggleUIMode(JFrame currentFrame) {
         Runnable runnable = () -> {
             uimode = switch (uimode) {
@@ -103,11 +205,13 @@ public class Main {
 
     public static void changeCursor(CursorType type) {
         switch (type) {
-            case DEFAULT -> frameInstance.switchToDefaultCursor();
-            case WAIT -> frameInstance.switchToWaitCursor();
+            case DEFAULT ->
+                frameInstance.switchToDefaultCursor();
+            case WAIT ->
+                frameInstance.switchToWaitCursor();
         }
     }
-    
+
     public static Properties getUIProperties() {
         return uiProperties;
     }
@@ -182,6 +286,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         if (SessionLedger.attemptStart()) {
             Garbage.start();
+            installActivityListeners();
             var lf = new LoginFrame();
             EventQueue.invokeLater(() -> lf.setVisible(true));
             Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -193,6 +298,15 @@ public class Main {
                 }
             });
         }
+    }
+
+    public static Optional<User> fetchUser(String username) {
+        File userFile = new File(Constants.USERS_PATH.getAbsolutePath() + "/" + username + ".usr");
+        if (!userFile.exists()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(Saver.load(userFile));
     }
 
     public static String mixPassAndSalt(String password, String salt) {
@@ -224,67 +338,26 @@ public class Main {
         return result;
     }
 
-    public static void saveUsers() {
-        serializeUserMap();
-        users.values().parallelStream().forEach(User::save);
-    }
-
-    private static void saveUserData() {
-        users.values().forEach(User::save);
-    }
-    
     public static void saveThumbNails() {
         File f = Constants.THUMBNAIL_FILE;
-        try ( var out = new ObjectOutputStream(new FileOutputStream(f))) {
+        try (var out = new ObjectOutputStream(new FileOutputStream(f))) {
             out.writeObject(thumbnails);
-            saveUserData();
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, "Failed while trying to save the thumbnails", ex);
             MessageDialog.show(null, ex.getMessage());
         }
     }
 
-    private static void loadUsers() {
-        File f = Constants.SAVE_FILE;
-
-        if (f.exists()) {
-            try ( var in = new ObjectInputStream(new FileInputStream(f))) {
-                users = (HashMap<String, User>) in.readObject();
-            } catch (FileNotFoundException ex) {
-                users = new HashMap<>();
-            } catch (IOException | ClassNotFoundException ex) {
-                users = new HashMap<>();
-            }
-        } else {
-            users = new HashMap<>();
-        }
-    }
-    
-    private static void initUsers() {
-        users.values().parallelStream().forEach(User::init);
-    }
-
-    
-    /**
-     * Reset's the thumbnails when the save files exceeds 500mb
-     */
-    static void cleanThumbNails() {
-        if (Constants.THUMBNAIL_FILE.length() > 5_000_000) {
-            Constants.THUMBNAIL_FILE.delete();
-            thumbnails.clear();
-        }
-    }
-    
     public static void removeThumbNail(String key) {
         thumbnails.remove(key);
         saveThumbNails();
     }
-    
+
     public static void loadThumbNails() {
         File f = Constants.THUMBNAIL_FILE;
 
         if (f.exists()) {
-            try ( var in = new ObjectInputStream(new FileInputStream(f))) {
+            try (var in = new ObjectInputStream(new FileInputStream(f))) {
                 thumbnails = (HashMap<String, ImageIcon>) in.readObject();
             } catch (FileNotFoundException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
@@ -311,19 +384,6 @@ public class Main {
         } catch (UnsupportedLookAndFeelException e) {
             MessageDialog.show(null, e.getMessage());
             e.printStackTrace();
-        }
-    }
-
-    private static void serializeUserMap() {
-        File f = Constants.SAVE_FILE;
-        try ( var out = new ObjectOutputStream(new FileOutputStream(f))) {
-            out.writeObject(users);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            MessageDialog.show(null, ex.getMessage());
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            MessageDialog.show(null, ex.getMessage());
         }
     }
 }

@@ -13,7 +13,7 @@ public final class FileFormatDetector {
     }
 
     private static boolean contains(String[] extensionArray, String target) {
-        return Arrays.stream(extensionArray).parallel().filter(x -> x.equalsIgnoreCase(target)).count() > 0;
+        return Arrays.stream(extensionArray).parallel().anyMatch(x -> x.equalsIgnoreCase(target));
     }
 
     private static boolean checkAudio(String extension) {

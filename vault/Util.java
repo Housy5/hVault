@@ -1,6 +1,5 @@
 package vault;
 
-import java.util.Arrays;
 import vault.gui.FolderCreationDialog;
 import vault.gui.PasswordDialog;
 import vault.fsys.Folder;
@@ -49,7 +48,7 @@ public class Util {
             Folder current = Main.frameInstance.user.getFileSystem().getCurrent();
             current.addFolder(FolderFactory.createFolder(current, name));
             Main.reload();
-            Main.saveUsers(); 
+            Main.save(); 
         }
     }
 }

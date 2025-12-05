@@ -43,11 +43,11 @@ public class NameValidator {
             return false;
         if (parent.containsPointerName(fileName))
             return false;
-        return isReservedName(fileName);
+        return !isReservedName(fileName);
     }
 
     private static boolean isReservedName(String fileName) {
-        return Arrays.stream(RESERVED_NAMES).parallel().filter(x -> x.equalsIgnoreCase(fileName)).count() > 0;
+        return Arrays.stream(RESERVED_NAMES).anyMatch(x -> x.equalsIgnoreCase(fileName));
     }
 
     private static boolean containsIllegalChar(String fileName) {

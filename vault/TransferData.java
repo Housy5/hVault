@@ -10,10 +10,6 @@ import java.util.Objects;
 import vault.fsys.FilePointer;
 import vault.fsys.Folder;
 
-/**
- *
- * @author olivi
- */
 public class TransferData implements Serializable {
     
     private List<FilePointer> pointers;

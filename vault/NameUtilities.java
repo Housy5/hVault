@@ -11,10 +11,35 @@ import vault.fsys.Folder;
 
 public class NameUtilities {
 
+    // generate uppercase character.
+    private static char genuc() {
+        int min = 'A', max = 'Z' + 1;
+        return (char) new Random().nextInt(min, max);
+    }
+
+    //generate lowercase character.
+    private static char genlc() {
+        int min = 'a', max = 'z' + 1;
+        return (char) new Random().nextInt(min, max);
+    }
+    
+    private static char genChar() {
+        int result = new Random().nextInt(100);
+        return result >= 50 ? genlc() : genuc();
+    }
+    
+    public static final String genRandomName(int length) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(genChar());
+        }
+        return sb.toString();
+    }
+    
     public static final String reformatFullFolderName(String fullname) {
         var sb = new StringBuilder();
         var sep = Constants.URL_SEPARATOR;
-        var separated = fullname.split(":");
+        var separated = fullname.split("::");
         for (int i = 0; i < separated.length; i++) {
             if (i == 0) {
                 sb.append(separated[i]);
@@ -142,9 +167,8 @@ public class NameUtilities {
 
         if (opt == RenameDialog.RENAME_OPTION) {
             item.setName(dialog.getNewName());
+            Main.reload();
+            Main.save();
         }
-
-        Main.reload();
-        Main.saveUsers();
     }
 }

@@ -1,14 +1,14 @@
 package vault.gui.menu;
 
-import java.awt.EventQueue;
 import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
 import vault.*;
 import vault.gui.*;
 import vault.fsys.*;
+import vault.gui.status.ProgramStatus;
+import vault.gui.status.StatusManager;
 import vault.password.Password;
-import vault.queue.*;
 import vault.user.*;
 
 public class DefaultMenu extends EmptyMenu {
@@ -16,7 +16,7 @@ public class DefaultMenu extends EmptyMenu {
     private static final long serialVersionUID = 1L;
 
     private JMenuItem createExportSelectionItem() {
-        var exportSelection = new JMenuItem("Export the Selected Items");
+        var exportSelection = new JMenuItem("Export Selected Items");
         exportSelection.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
@@ -32,28 +32,28 @@ public class DefaultMenu extends EmptyMenu {
                 Export.exportAll(objs);
             }
         });
-        
+
         return exportSelection;
     }
-    
+
     private JMenuItem createDeleteSelectionItem() {
-        var deleteSelection = new JMenuItem("Delete the Selected Items");
+        var deleteSelection = new JMenuItem("Delete Selected Items");
         deleteSelection.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
                 var tiles = frame.getSelectedTiles();
                 var fsys = frame.user.getFileSystem();
-                
+
                 tiles.stream().filter(x -> x.isFile()).forEach(x -> fsys.removeFilePointer(x.file));
-                tiles.stream().filter(x -> x.isFolder()).filter(x-> !x.folder.isLocked()).forEach(x -> fsys.removeFolder(x.folder));
-                
+                tiles.stream().filter(x -> x.isFolder()).filter(x -> !x.folder.isLocked()).forEach(x -> fsys.removeFolder(x.folder));
+
                 frame.loadFolder(fsys.getCurrent());
-                Main.saveUsers();
+                Main.save();
             }
         });
         return deleteSelection;
     }
-    
+
     private JMenuItem createRefreshItem() {
         var refresh = new JMenuItem("Refresh");
         refresh.addMouseListener(new MouseAdapter() {
@@ -97,7 +97,7 @@ public class DefaultMenu extends EmptyMenu {
                     if (opt == ConfirmDialog.YES) {
                         user.getFileSystem().removeAllPointers();
                         frame.loadFolder(user.getFileSystem().getCurrent());
-                        Main.saveUsers();
+                        Main.save();
                     }
                 }
             }
@@ -131,13 +131,43 @@ public class DefaultMenu extends EmptyMenu {
         return addItem;
     }
 
+    private JMenuItem createCutManyItem() {
+
+        var mi = new JMenuItem("Cut Selected Items");
+        mi.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                Frame frameInstance = Main.frameInstance;
+                FileSystem fs = frameInstance.user.getFileSystem();
+                List<FileSystemItem> items = frameInstance.getSelectedTiles().stream().map(x -> x.getFileSystemItem()).toList();
+                frameInstance.getClipper().cutMany(items, fs.getCurrent());
+            }
+        });
+        return mi;
+    }
+
+    private JMenuItem createCopyManyItem() {
+
+        var mi = new JMenuItem("Copy Selected Items");
+        mi.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                Frame frameInstance = Main.frameInstance;
+                FileSystem fs = frameInstance.user.getFileSystem();
+                List<FileSystemItem> items = frameInstance.getSelectedTiles().stream().map(x -> x.getFileSystemItem()).toList();
+                frameInstance.getClipper().copyMany(items);
+            }
+        });
+        return mi;
+    }
+
     private JMenuItem createPasteItem() {
         var paste = new JMenuItem("Paste");
         paste.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
-                    Main.frameInstance.getClipper().paste(); 
+                    Main.frameInstance.getClipper().paste();
                 }
             }
         });
@@ -154,28 +184,19 @@ public class DefaultMenu extends EmptyMenu {
                 }
                 if (SwingUtilities.isLeftMouseButton(e)) {
 
-                    if (ImportQueue.instance().isImporting()
-                            || ExportQueue.instance().isExporting()) {
+                    if (StatusManager.nextStatus() != ProgramStatus.WAITING) {
                         MessageDialog.show(frame, "You can't log out while importing or exporting files!");
                         return;
                     }
 
-                    int x = ConfirmDialog.show(frame, "Are you sure you want to log out?");                    
+                    int x = ConfirmDialog.show(frame, "Are you sure you want to log out?");
                     if (x == ConfirmDialog.YES) {
-                        ImportQueue.instance().stop();
-                        ExportQueue.instance().stop();
-                        frame.stopProgressTimer();
-                        Export.stopIOMonitor();
-                        LoginFrame lf = new LoginFrame();
-                        lf.setLocationRelativeTo(Main.frameInstance);
-                        EventQueue.invokeLater(() -> lf.setVisible(true));
-                        Main.frameInstance.dispose();
-                        Main.frameInstance = null;
+                        Main.logout();
                         return;
                     }
 
                     frame.loadFolder(user.getFileSystem().getCurrent());
-                    Main.saveUsers();
+                    Main.save();
                 }
             }
         });
@@ -189,7 +210,7 @@ public class DefaultMenu extends EmptyMenu {
             public void mouseReleased(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     user.toggleWelcomeMessage();
-                    Main.saveUsers();
+                    Main.save();
                 }
             }
         });
@@ -206,8 +227,9 @@ public class DefaultMenu extends EmptyMenu {
                 if (x == Util.PASSWORD_ACCEPTED) {
                     var dialog = new NewPasswordDialog(Main.frameInstance);
                     String newPass = dialog.getPassword();
-                    if (newPass == null || newPass.isBlank())
+                    if (newPass == null || newPass.isBlank()) {
                         return;
+                    }
                     user.setPassword(new Password(newPass));
                     MessageDialog.show(frame, "Your password has been updated!");
                 } else if (x == Util.PASSWORD_DENIED) {
@@ -230,7 +252,10 @@ public class DefaultMenu extends EmptyMenu {
                     var foundItems = user.getFileSystem().search(keywords);
                     if (!foundItems.isEmpty()) {
                         Folder searchFolder = FolderFactory.createSearchFolder(user.getFileSystem().getCurrent(), foundItems);
-                        frame.loadFolder(searchFolder);
+                        Main.getCurrentUser().getFileSystem().moveTo(searchFolder);
+                        Main.reload();
+                    } else {
+                        MessageDialog.show(frame, "There are no results :(");
                     }
                 }
             }
@@ -245,14 +270,17 @@ public class DefaultMenu extends EmptyMenu {
             add(createExportSelectionItem());
             add(createDeleteSelectionItem());
             add(new JSeparator());
+            add(createCutManyItem());
+            add(createCopyManyItem());
+            add(new JSeparator());
         }
-        
-        if (user.getFileSystem().getCurrent().getPointers().size() > 1)  {
+
+        if (user.getFileSystem().getCurrent().getPointers().size() > 1) {
             add(createExportAllItem());
             add(createDeleteAllItem());
             add(new JSeparator());
         }
-        
+
         add(createNewFolderItem());
         add(createNewFileItem());
         add(new JSeparator());
@@ -260,13 +288,13 @@ public class DefaultMenu extends EmptyMenu {
         add(new JSeparator());
         add(createPasteItem());
         add(new JSeparator());
-        add(createLogoutItem()); 
+        add(createLogoutItem());
         add(createPasswordItem());
-        
-        if (!user.showWelcomeMessage()) {
-            add(new JSeparator());
-            add(createEnableWelcomeMsgItem());
-        }
+
+        /*        if (!user.showWelcomeMessage()) {
+        add(new JSeparator());
+        add(createEnableWelcomeMsgItem());
+        }*/
     }
 
 }

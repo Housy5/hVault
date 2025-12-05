@@ -61,12 +61,15 @@ public final class FolderLayout implements LayoutManager {
     public void layoutContainer(Container parent) {
         var comps = parent.getComponents();
         var yOffset = maxComponentHeight(parent.getComponents());
-        var xOffset = maxComponentWidth(parent.getComponents());
         int xPos = padding, yPos = padding;
                 
         for (int i = 0; i < comps.length; i++) {
             Component comp = comps[i];
-            xPos += xOffset * Integer.signum(i) + padding;
+            if (i == 0) {
+                xPos = padding;
+            } else {
+                xPos = comps[i - 1].getX() + comps[i - 1].getWidth() + padding;
+            }
             if (xPos > observer.getWidth() - comp.getPreferredSize().width - padding) {
                 xPos = padding;
                 yPos += yOffset + padding;

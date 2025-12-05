@@ -20,6 +20,15 @@ public class FileSystemItem {
     public final Folder getParent() {
         return parent;
     }
+    
+    public String getPath() {
+        if (getName().equals("Root")) {
+            return getName();
+        }
+        
+        return parent.getPath() + "::" + getName();
+    }
+    
 
     public final FileSystemItem setName(String name) {
         this.name = name;
@@ -130,6 +139,6 @@ public class FileSystemItem {
         if (!Objects.equals(this.parent, other.parent)) {
             return false;
         }
-        return Objects.equals(this.creationDate, other.creationDate);
+        return true;
     }
 }

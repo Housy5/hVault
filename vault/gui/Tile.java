@@ -8,6 +8,8 @@ import java.awt.Desktop;
 import java.awt.Rectangle;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DragGestureEvent;
+import java.awt.dnd.DragSource;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.MouseAdapter;
@@ -16,8 +18,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -33,13 +33,15 @@ import vault.fsys.Folder;
 import vault.fsys.FilePointer;
 import vault.fsys.FileSystem;
 import static vault.Main.frameInstance;
-import vault.FileTransferHandler;
 import vault.IconUtil;
 import vault.NameUtilities;
-import vault.TransferData;
 import vault.Util;
 import vault.fsys.FileSystemItem;
+import vault.gui.dnd.FSITransferData;
+import vault.gui.dnd.FSITransferHandler;
 import vault.interfaces.Updatable;
+import vault.io.IOQueue;
+import vault.io.IOTask;
 import vault.password.Password;
 
 public class Tile extends JPanel implements Updatable {
@@ -76,7 +78,28 @@ public class Tile extends JPanel implements Updatable {
 
         public TileContextMenu() {
 
-            var exportSelection = new JMenuItem("Export the Selected Items");
+            var cutSelection = new JMenuItem("Cut Selected Items");
+            cutSelection.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    Frame frameInstance = Main.frameInstance;
+                    FileSystem fs = frameInstance.user.getFileSystem();
+                    List<FileSystemItem> items = frameInstance.getSelectedTiles().stream().map(x -> x.getFileSystemItem()).toList();
+                    frameInstance.getClipper().cutMany(items, fs.getCurrent());
+                }
+            });
+
+            var copySelection = new JMenuItem("Copy Selected Items");
+            copySelection.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    Frame frameInstance = Main.frameInstance;
+                    List<FileSystemItem> items = frameInstance.getSelectedTiles().stream().map(x -> x.getFileSystemItem()).toList();
+                    frameInstance.getClipper().copyMany(items);
+                }
+            });
+
+            var exportSelection = new JMenuItem("Export Selected Items");
             exportSelection.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
@@ -93,7 +116,7 @@ public class Tile extends JPanel implements Updatable {
                 }
             });
 
-            var deleteSelection = new JMenuItem("Delete the Selected Items");
+            var deleteSelection = new JMenuItem("Delete Selected Items");
             deleteSelection.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent e) {
@@ -104,7 +127,7 @@ public class Tile extends JPanel implements Updatable {
                     tiles.stream().filter(x -> x.isFolder()).forEach(x -> fsys.removeFolder(x.folder));
 
                     Main.reload();
-                    Main.saveUsers();
+                    Main.save();
                 }
             });
 
@@ -183,7 +206,7 @@ public class Tile extends JPanel implements Updatable {
                         public void run() {
                             fsys.removeFolder(folder);
                             frameInstance.loadFolder(fsys.getCurrent());
-                            Main.saveUsers();
+                            Main.save();
                         }
                     };
                     Thread thread = new Thread(runnable);
@@ -195,16 +218,17 @@ public class Tile extends JPanel implements Updatable {
                         public void run() {
                             FileSystem fsys = frameInstance.user.getFileSystem();
                             fsys.deleteFilePointer(file);
-                            
+
                             if (fsys.getCurrent().isSearchFolder()) {
-                                fsys.getCurrent().removeFilePointer(file);
+                                fsys.getCurrent().removeFilePointerReference(file);
                             }
-                            
-                            if (file.isImage())
+
+                            if (file.isImage()) {
                                 Main.removeThumbNail(file.getName());
-                            
+                            }
+
                             Main.reload();
-                            Main.saveUsers();
+                            Main.save();
                         }
                     };
                     Thread thread = new Thread(runnable);
@@ -270,12 +294,9 @@ public class Tile extends JPanel implements Updatable {
                         return;
                     }
 
-                    System.out.println("passStr: " + passStr + ".");
-
                     Password pass = new Password(passStr);
-                    folder.setPassword(pass);
-                    folder.setLocked(true);
-                    Main.saveUsers();
+                    folder.lock(pass);
+                    Main.save();
                 }
             });
 
@@ -287,8 +308,8 @@ public class Tile extends JPanel implements Updatable {
                         int x = Util.requestFolderPassword(folder);
 
                         if (x == Util.PASSWORD_ACCEPTED) {
-                            folder.setLocked(false);
-                            Main.saveUsers();
+                            folder.unlock();
+                            Main.save();
                         } else if (x == Util.PASSWORD_DENIED) {
                             MessageDialog.show(frameInstance, Constants.ACCESS_DENIED_TEXT);
                         }
@@ -300,6 +321,8 @@ public class Tile extends JPanel implements Updatable {
                 add(exportSelection);
                 add(deleteSelection);
                 add(new JSeparator());
+                add(cutSelection);
+                add(copySelection);
             }
 
             if (frameInstance.getSelectionCount() == 0) {
@@ -331,29 +354,25 @@ public class Tile extends JPanel implements Updatable {
     public FilePointer getFile() {
         return file;
     }
-    
+
+    public Folder getFolder() {
+        return folder;
+    }
+
     @Override
     public void update() {
         BACKGROUND_COLOR = frameInstance.getBackground();
-        manageBackground();
     }
 
-    @SuppressWarnings("empty-statement")
-    @Deprecated
-    private void openFile(FilePointer original) {
-        try {
-            frameInstance.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            var f = Export.exportTemporaryFile(file);
-            while (!f.exists() || f.length() < original.getSize());
-            Desktop.getDesktop().open(f);
-            frameInstance.setCursor(Cursor.getDefaultCursor());
-        } catch (IOException ex) {
-            Logger.getLogger(Tile.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
     private void openPointer(FilePointer pointer) {
-        new OpenThread(pointer).start();
+        IOQueue.addIOTask(IOTask.createOpenTask(file));
+    }
+
+    public FileSystemItem getFileSystemItem() {
+        if (isFile()) {
+            return file;
+        }
+        return folder;
     }
 
     public boolean isFile() {
@@ -433,14 +452,18 @@ public class Tile extends JPanel implements Updatable {
     }
 
     private Icon parseIcon() {
-        if (file.isAudio())
+        if (file.isAudio()) {
             return audioFileIcon;
-        if (file.isImage())
+        }
+        if (file.isImage()) {
             return getThumbNail();
-        if (file.isDocument())
+        }
+        if (file.isDocument()) {
             return documentFileIcon;
-        if (file.isVideo())
+        }
+        if (file.isVideo()) {
             return videoFileIcon;
+        }
         return defaultFileIcon;
     }
 
@@ -482,8 +505,9 @@ public class Tile extends JPanel implements Updatable {
 
     private void shortenName() {
         int length = MAX_NAME_LENGTH;
-        if (name.length() < length)
+        if (name.length() < length) {
             return;
+        }
         name = name.substring(0, length) + "...";
     }
 
@@ -519,29 +543,18 @@ public class Tile extends JPanel implements Updatable {
         init();
     }
 
+    public void setSelected(boolean b) {
+        this.selected = b;
+        setBackground(!b ? BACKGROUND_COLOR : BACKGROUND_COLOR.darker());
+    }
+
+    @Deprecated
     public void toggleSelected() {
         selected = !selected;
-        manageBackground();
     }
 
     public void resetBackground() {
         setBackground(BACKGROUND_COLOR);
-    }
-
-    private void manageTracking() {
-        if (selected) {
-            frameInstance.track(this);
-        } else {
-            frameInstance.untrack(this);
-        }
-    }
-
-    private void manageBackground() {
-        if (!selected) {
-            setBackground(BACKGROUND_COLOR);
-        } else if (selected) {
-            setBackground(BACKGROUND_COLOR.darker());
-        }
     }
 
     private boolean isDoubleClick() {
@@ -563,8 +576,7 @@ public class Tile extends JPanel implements Updatable {
     }
 
     private void doubleClickFolder() {
-        frameInstance.getFolderCursor().push(folder);
-        frameInstance.loadFolder(folder);
+        frameInstance.open(folder);
     }
 
     private void rightClickTile(MouseEvent e) {
@@ -582,15 +594,22 @@ public class Tile extends JPanel implements Updatable {
         BACKGROUND_COLOR = Main.frameInstance.getBackground();
         resetBackground();
 
+        DragSource source = new DragSource();
+        source.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_MOVE, (DragGestureEvent e) -> {
+            if (Main.frameInstance.getSelectionCount() > 0) {
+                List<FileSystemItem> items = Main.frameInstance.getSelectedTiles().stream().map(x -> x.getFileSystemItem()).toList();
+                e.startDrag(DragSource.DefaultMoveDrop, new FSITransferHandler(items, Main.frameInstance.user.getFileSystem().getCurrent()));
+            } else {
+                List<FileSystemItem> item = List.of(((Tile)e.getComponent()).getFileSystemItem());
+                e.startDrag(DragSource.DefaultMoveDrop, new FSITransferHandler(item, Main.frameInstance.user.getFileSystem().getCurrent()));
+            }
+        });
+        
         addMouseListener(new MouseAdapter() {
+
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (SwingUtilities.isLeftMouseButton(e) && e.isShiftDown()) {
-                    if ((isFolder() && !"..".equals(name)) || isFile()) {
-                        toggleSelected();
-                        manageTracking();
-                    }
-                } else if (SwingUtilities.isLeftMouseButton(e)) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
                     var now = System.currentTimeMillis();
                     if (isDoubleClick()) {
                         frameInstance.resetSelections();
@@ -602,6 +621,8 @@ public class Tile extends JPanel implements Updatable {
                             case ADD -> {
                             }
                         }
+                    } else {
+                        setSelected(!selected);
                     }
                     lastClicked = now;
                 } else if (SwingUtilities.isRightMouseButton(e)) {
@@ -627,6 +648,7 @@ public class Tile extends JPanel implements Updatable {
                     setBackground(BACKGROUND_COLOR);
                 }
             }
+
         });
 
         setDropTarget(new DropTarget() {
@@ -635,18 +657,19 @@ public class Tile extends JPanel implements Updatable {
                 if (type == FileType.FILE || type == FileType.ADD) {
                     return;
                 }
+
                 try {
                     evt.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
-                    if (evt.isDataFlavorSupported(FileTransferHandler.FILE_POINTER_LIST_FLAVOR)) {
-                        TransferData data = (TransferData) evt.getTransferable().getTransferData(FileTransferHandler.FILE_POINTER_LIST_FLAVOR);
-                        Folder origin = frameInstance.user.getFileSystem().findFolder(data.getOrigin().getPath());
-
-                        for (var pointer : data.getPointers()) {
-                            Main.frameInstance.user.getFileSystem().transferFile(pointer, origin, folder);
+                    if (evt.isDataFlavorSupported(FSITransferHandler.FILE_POINTER_LIST_FLAVOR)) {
+                        if (!isFolder()) {
+                            return;
                         }
+                        var data = (FSITransferData) evt.getTransferable().getTransferData(FSITransferHandler.FILE_POINTER_LIST_FLAVOR);
+
+                        frameInstance.user.getFileSystem().transferItems(data.getItems(), data.getOrigin(), folder);
 
                         Main.reload();
-                        Main.saveUsers();
+                        Main.save();
                     } else {
                         List<File> droppedObject = (List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
                         frameInstance.addFiles(droppedObject, folder);

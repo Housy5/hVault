@@ -1,46 +1,58 @@
 package vault.fsys;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import vault.Constants;
-import vault.NameUtilities;
-import vault.fsys.io.EncryptedIO;
-import vault.fsys.io.FileSystemFormat;
+import vault.io.FileEncryptor;
 
-public final class FilePointer extends FileSystemItem implements FileSystemFormat {
+public class FilePointer extends FileSystemItem {
 
     private File content;
     private FileFormat format;
-    private String parentPath;
     private String ext;
-    
+
     public FilePointer() {
-        
+
     }
-    
+
     public FilePointer(String name) {
         setName(name);
         initFormat();
-        initContentFile();
     }
 
-    public final String getParentPath() {
-        return parentPath;
+    @Override
+    public long getSize() {
+        return content.getTotalSpace();
     }
     
+    public final String getParentPath() {
+        return getParent().getPath();
+    }
+
     public final File getContentFile() {
         return content;
     }
     
-    private void initContentFile() {
-        content = new File(Constants.FILES_PATH.getAbsolutePath() + "/" + NameUtilities.generateRandomFileName());
+    public final void setContentFile(File file) {
+        this.content = file;
     }
-    
+
     private void initFormat() {
         format = FileFormatDetector.detectFormat(this.getExtension());
     }
 
+    public FileFormat getFileFormat() {
+        return format;
+    }
+    
+    public void setFileFormat(FileFormat format) {
+        this.format = format;
+    } 
+    
     private boolean isFormat(FileFormat format) {
         return this.format == format;
     }
@@ -61,58 +73,50 @@ public final class FilePointer extends FileSystemItem implements FileSystemForma
         return isFormat(FileFormat.DOCUMENT);
     }
 
-    public final void saveContent(byte[] data) {
-        EncryptedIO.export(this, data);
-    }
-    
-    public final void saveBigFile(File file) {
-        
-    }
-    
-    public final byte[] getContent() {
-        if (content == null)
-            throw new RuntimeException("There is no content file!");
-        return EncryptedIO.readContent(this);
-    }
-    
     public final boolean delete() {
         return content.delete();
     }
+
+    public final void copyContent(File file) {
+        byte[] buffer = new byte[1024 * 1024]; // 1MB buffer size
+
+        try ( InputStream inputStream = new FileInputStream(file );  
+              OutputStream outputStream = new FileOutputStream(content)) {
+
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     
+    private final int memLimit = 20_000_000;
+    
+    public final byte[] getContent() {
+        if (content.length() > memLimit)
+            return null;
+        return FileEncryptor.decryptFile(content);
+    }
+    
+
     public final FilePointer copy() {
         FilePointer pointer = new FilePointer(getName());
         pointer.setCreationDate(LocalDateTime.now());
         pointer.setParent(getParent());
         pointer.setSize(getSize());
-        pointer.saveContent(EncryptedIO.readContent(this));
+        pointer.copyContent(content);
         return pointer;
     }
-    
-    @Override
-    public String format() {
-        //type::name::creation_date::parent_url::content_file_name::file_format::size
-        return "pointer::" + getName() + "::" + getCreationDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "::" + getParent().getPath() + "::" + content.getAbsolutePath() + "::" + format.toString() + "::" + getSize();
-    }
 
-    @Override
-    public void parse(String data) {
-        String[] arr = data.split("::");
-        if (!arr[0].equals("pointer"))
-            throw new IllegalArgumentException();
-        this.setName(arr[1]);
-        this.setCreationDate(LocalDateTime.parse(arr[2]));
-        parentPath = arr[3]; 
-        content = new File(arr[4]);
-        format = FileFormat.valueOf(arr[5]);
-        setSize(Long.parseLong(arr[6]));
-    }
-    
     private String parseExtension() {
         var name = getName();
         int partition = name.lastIndexOf(".");
         return partition == -1 || partition == name.length() ? "" : name.substring(partition + 1);
     }
-    
+
     public final String getExtension() {
         if (ext == null)
             ext = parseExtension();
