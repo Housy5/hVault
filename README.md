@@ -15,3 +15,5 @@
 <h2>Latest Release</h2>
 <p>You can find the latest release <a href="https://github.com/Housy5/hVault/releases/tag/v1.4">over here</a>.</p>
 <p>Simply download and run the installer.</p>
+<h2>Notes</h2>
+<p>To be sure make sure to back up the files. I don't think there are bugs anymore but you never know...</p>
