@@ -18,4 +18,5 @@
 <h2>Notes</h2>
 <p>To be sure make sure to back up the files. I don't think there are bugs anymore but you never know...</p>
 <h2>Screenshots</h2>
-<img href="">
+<img src="Screenshots/Demo Picture 2.png">
+<img src="Screenshots/Demo Picture 1.png">
