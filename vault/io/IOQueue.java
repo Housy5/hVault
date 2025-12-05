@@ -33,11 +33,11 @@ public class IOQueue implements Runnable {
     
     static {
         try {
-            if (Files.exists(tempPath)) {
+            if (!Files.exists(tempPath)) {
                 Files.createDirectories(tempPath);
             }
             
-            if (Files.exists(filePath)) {
+            if (!Files.exists(filePath)) {
                 Files.createDirectories(filePath);
             }
             
@@ -231,3 +231,4 @@ public class IOQueue implements Runnable {
         StatusManager.pop(ProgramStatus.OPENING);
     }
 }
+
